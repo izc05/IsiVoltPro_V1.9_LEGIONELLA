@@ -2,2409 +2,572 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>IsivoltPro - Control de Inventario</title>
-<meta name="description" content="Control inteligente de inventario con QR, gestión de herramientas y personal">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>IsivoltPro - Gestión Total</title>
+
 <meta name="theme-color" content="#1e3c72">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="IsivoltPro">
-<link rel="manifest" id="manifest-placeholder">
-<link rel="icon" type="image/png" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='75' font-size='80'>⚡</text></svg>">
-<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%231e3c72'/><text y='75' x='50' text-anchor='middle' font-size='60' fill='white'>⚡</text></svg>">
+<link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/1086/1086581.png">
+<link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/1086/1086581.png">
+
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2/dist/quagga.min.js"></script>
+
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f4f8;min-height:100vh}
+/* ── ESTILOS BASE ── */
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f4f6f9;min-height:100vh;color:#333;padding-bottom:90px;overscroll-behavior-y:none}
 
-/* ── HEADER ── */
-.header{background:linear-gradient(135deg,#1e3c72,#2a5298);padding:16px 20px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100;box-shadow:0 2px 10px rgba(0,0,0,.3)}
-.header h1{color:#fff;font-size:20px;font-weight:700}
-.header-sub{color:rgba(255,255,255,.8);font-size:11px}
-.header-logo{width:42px;height:42px;background:rgba(255,255,255,.15);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.2)}
+/* ── LOGIN ── */
+#login-overlay{position:fixed;inset:0;background:#1e3c72;z-index:10000;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;transition:opacity .5s}
+#login-overlay.hidden{opacity:0;pointer-events:none}
+.login-box{background:rgba(255,255,255,.1);backdrop-filter:blur(10px);padding:30px;border-radius:20px;text-align:center;width:90%;max-width:320px;box-shadow:0 20px 50px rgba(0,0,0,.3)}
+.pin-dots{display:flex;justify-content:center;gap:15px;margin:20px 0}
+.pin-dot{width:15px;height:15px;border-radius:50%;background:rgba(255,255,255,.3);transition:background .2s}
+.pin-dot.active{background:#fff;transform:scale(1.2)}
+.numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin-top:20px}
+.num-btn{background:rgba(255,255,255,.1);border:none;color:#fff;font-size:20px;padding:15px;border-radius:50%;cursor:pointer;transition:background .2s}
+.num-btn:active{background:rgba(255,255,255,.3)}
 
-/* ── MENÚ CONFIGURACIÓN ── */
-.settings-menu{position:fixed;top:70px;right:16px;background:#fff;border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.2);padding:8px;min-width:260px;z-index:200;display:none;animation:slideIn .25s ease}
-.settings-menu.show{display:block}
-.settings-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:10px;cursor:pointer;transition:all .2s;font-size:14px;color:#333;border:none;background:none;width:100%;text-align:left}
-.settings-item:hover{background:#f0f4ff}
-.settings-item-icon{font-size:20px;width:32px;display:flex;align-items:center;justify-content:center}
-.settings-item-text{flex:1}
-.settings-item-label{font-weight:600;font-size:13px;display:block}
-.settings-item-desc{font-size:11px;color:#888;margin-top:2px}
-.settings-divider{height:1px;background:#e8ecf0;margin:6px 0}
+/* ── UI HEADER & NAV ── */
+.header{background:linear-gradient(135deg,#1e3c72,#2a5298);padding:16px 20px;position:sticky;top:0;z-index:100;box-shadow:0 4px 15px rgba(0,0,0,.15);display:flex;justify-content:space-between;align-items:center}
+.app-title{color:#fff;font-size:18px;font-weight:800;letter-spacing:0.5px}
+.btn-icon{background:rgba(255,255,255,.2);border:none;color:#fff;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer}
 
-/* ── TABS ── */
-.tabs{display:flex;background:#fff;border-bottom:2px solid #e8ecf0;position:sticky;top:60px;z-index:99;overflow-x:auto}
-.tab{flex:0 0 auto;padding:13px 16px;border:none;background:none;font-size:12px;color:#888;cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;font-weight:500;transition:all .2s}
-.tab.active{color:#1e3c72;border-bottom-color:#1e3c72;font-weight:700;background:#f8f9ff}
-.tab-badge{background:#e74c3c;color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;margin-left:4px}
+.nav-bar{position:fixed;bottom:0;left:0;right:0;background:#fff;display:flex;justify-content:space-around;padding:12px 0;box-shadow:0 -5px 20px rgba(0,0,0,.05);z-index:90;border-top:1px solid #eee;padding-bottom:max(12px, env(safe-area-inset-bottom))}
+.nav-item{border:none;background:none;color:#999;font-size:10px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;width:100%}
+.nav-item.active{color:#1e3c72;font-weight:700}
+.nav-icon{font-size:22px;margin-bottom:2px}
 
-.content{padding:16px;max-width:680px;margin:0 auto}
-.tab-content{display:none}.tab-content.active{display:block}
+/* ── VISTAS Y TARJETAS ── */
+.view{display:none;padding:20px;max-width:800px;margin:0 auto;animation:fadeIn .3s ease}
+.view.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 
-/* ── CARDS ── */
-.card{background:#fff;border-radius:14px;padding:16px;margin-bottom:14px;box-shadow:0 2px 8px rgba(0,0,0,.07)}
-.card-title{font-size:14px;font-weight:700;color:#1e3c72;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.card{background:#fff;border-radius:16px;padding:18px;margin-bottom:15px;box-shadow:0 5px 15px rgba(0,0,0,.04)}
 
-/* ── KPIs ── */
-.kpi-row{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
-.kpi{border-radius:14px;padding:16px;color:#fff;position:relative;overflow:hidden}
-.kpi-val{font-size:36px;font-weight:800;line-height:1}
-.kpi-lbl{font-size:12px;opacity:.9;margin-top:4px}
-.kpi-bar{height:5px;background:rgba(255,255,255,.3);border-radius:3px;margin-top:10px;overflow:hidden}
-.kpi-bar-fill{height:100%;background:rgba(255,255,255,.9);border-radius:3px;transition:width .5s}
-.kpi-blue{background:linear-gradient(135deg,#1e3c72,#2a5298)}
-.kpi-green{background:linear-gradient(135deg,#27ae60,#1e8449)}
-.kpi-red{background:linear-gradient(135deg,#e74c3c,#c0392b)}
-.kpi-orange{background:linear-gradient(135deg,#f39c12,#d35400)}
+/* KPI GRID */
+.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:15px}
+.kpi-box{background:rgba(255,255,255,0.1);padding:10px;border-radius:10px;text-align:center}
+.kpi-val{font-size:20px;font-weight:bold}
+.kpi-lbl{font-size:10px;opacity:0.8}
 
-/* ── TÉCNICOS CON HERRAMIENTAS (hero dashboard) ── */
-.tecnico-card{background:#fff;border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,.07);border-left:5px solid #e74c3c;display:flex;gap:12px;align-items:flex-start}
-.tecnico-card.libre{border-left-color:#27ae60;opacity:.7}
-.tecnico-avatar{width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#1e3c72,#2a5298);color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;flex-shrink:0}
-.tecnico-info{flex:1;min-width:0}
-.tecnico-name{font-weight:700;font-size:15px;color:#1a1a2e;margin-bottom:2px}
-.tecnico-dept{font-size:12px;color:#888;margin-bottom:6px}
-.herramienta-tag{display:inline-flex;align-items:center;gap:5px;background:#fff3e0;color:#e65100;border:1px solid #ffcc80;border-radius:20px;padding:4px 10px;font-size:12px;font-weight:600;margin:2px;cursor:pointer;transition:all .2s}
-.herramienta-tag:hover{background:#ffe0b2}
-.herramienta-tag.critico{background:#ffebee;color:#c62828;border-color:#ef9a9a}
-.dias-badge{background:#e74c3c;color:#fff;border-radius:10px;padding:2px 7px;font-size:10px;font-weight:700}
-.dias-badge.ok{background:#27ae60}
-.dias-badge.warn{background:#f39c12}
-.tecnico-libre{color:#27ae60;font-size:13px;font-weight:600}
-.tecnico-phone{color:#1e3c72;font-size:12px;margin-top:4px;text-decoration:none;display:flex;align-items:center;gap:4px}
+/* LISTA ITEMS */
+.item-card{display:flex;gap:12px;padding:12px;border-bottom:1px solid #f0f0f0;align-items:center}
+.item-img-box{width:55px;height:55px;background:#f0f4f8;border-radius:10px;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:24px}
+.item-img{width:100%;height:100%;object-fit:cover}
+.item-info{flex:1;min-width:0}
+.item-name{font-weight:700;font-size:15px;color:#222;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.badge-loc{background:#e3f2fd;color:#1565c0;padding:2px 6px;border-radius:4px;font-size:10px;display:inline-block;margin-top:2px}
+.stock-val{font-size:16px;font-weight:800;color:#1e3c72}
+.stock-val.low{color:#c0392b}
 
-/* ── SCAN ── */
-.scan-section{text-align:center;padding:10px 0}
-video{width:100%;max-width:400px;border-radius:12px;display:none;margin:12px auto}
-.scan-mode-tabs{display:flex;gap:8px;margin-bottom:16px}
-.scan-mode-btn{flex:1;padding:12px;border:2px solid #e0e0e0;background:#fff;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;color:#666;transition:all .2s}
-.scan-mode-btn.active{border-color:#1e3c72;background:#f0f4ff;color:#1e3c72}
-.scan-state-box{background:#f8f9ff;border:2px dashed #c0ccee;border-radius:12px;padding:20px;margin:12px 0;text-align:center}
-.scan-state-icon{font-size:50px;margin-bottom:8px}
-.scan-pending{background:#fff3e0;border:2px solid #ffb74d;border-radius:12px;padding:14px;margin:10px 0;text-align:left}
-.scan-step{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #ffe0b2}
-.scan-step:last-child{border-bottom:none}
-.step-num{width:28px;height:28px;border-radius:50%;background:#f39c12;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0}
-.step-num.done{background:#27ae60}
-.step-num.active{background:#1e3c72;animation:pulse 1s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+/* BOTONES Y FORMULARIOS */
+.fab{position:fixed;bottom:90px;right:20px;width:56px;height:56px;background:linear-gradient(135deg,#27ae60,#2ecc71);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px;box-shadow:0 10px 25px rgba(39,174,96,.4);cursor:pointer;z-index:95;transition:transform .2s}
+.fab:active{transform:scale(0.9)}
 
-/* ── MATERIALES ── */
-.tool-card{background:#fff;border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,.07);border-left:4px solid #27ae60}
-.tool-card.out{border-left-color:#e74c3c}
-.tool-name{font-weight:700;font-size:15px;color:#1a1a2e;margin-bottom:4px}
-.tool-meta{font-size:12px;color:#777;display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
-.tool-meta span{display:flex;align-items:center;gap:3px}
-.tag{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600}
-.tag-cat{background:#e8f4fd;color:#1e6091}
-.tag-avail{background:#d5f5e3;color:#1e8449}
-.tag-out{background:#fadbd8;color:#922b21}
-.tag-loc{background:#fef9e7;color:#9a7d0a}
-.action-row{display:flex;gap:8px;margin-top:10px}
-
-/* ── PERSONAL ── */
-.worker-card{background:#fff;border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,.07);display:flex;gap:12px;align-items:flex-start}
-.worker-avatar{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#1e3c72,#2a5298);color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;flex-shrink:0}
-
-/* ── HISTORIAL ── */
-.hist-item{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:1px solid #f0f0f0}
-.hist-item:last-child{border-bottom:none}
-.hist-dot{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
-.hist-dot.out{background:#ffebee}
-.hist-dot.in{background:#e8f5e9}
-
-/* ── BOTONES ── */
-.btn{padding:10px 18px;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px}
-.btn-primary{background:linear-gradient(135deg,#1e3c72,#2a5298);color:#fff;box-shadow:0 3px 10px rgba(30,60,114,.3)}
-.btn-success{background:linear-gradient(135deg,#27ae60,#1e8449);color:#fff}
-.btn-danger{background:linear-gradient(135deg,#e74c3c,#c0392b);color:#fff}
-.btn-ghost{background:#f0f4f8;color:#1e3c72;border:1px solid #d0d8e8}
-.btn-sm{padding:6px 12px;font-size:12px}
-.btn-full{width:100%;justify-content:center;padding:14px}
-.btn:active{transform:scale(.97)}
-
-/* ── FORMS ── */
-.form-group{margin-bottom:14px}
-.form-group label{display:block;font-size:13px;font-weight:600;color:#444;margin-bottom:5px}
-.form-group input,.form-group select,.form-group textarea{width:100%;padding:11px 14px;border:2px solid #e0e8f0;border-radius:8px;font-size:14px;transition:border .2s;background:#fff}
-.form-group input:focus,.form-group select:focus{outline:none;border-color:#2a5298}
-.search-bar{position:relative;margin-bottom:14px}
-.search-bar input{padding-left:38px;background:#f8fafc;border-color:#e8ecf0}
-.search-bar::before{content:'🔍';position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:15px}
-
-/* ── MODAL ── */
-.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999;align-items:flex-end;justify-content:center}
-.modal.active{display:flex}
-.modal-box{background:#fff;border-radius:20px 20px 0 0;padding:24px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;animation:slideUp .3s ease}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:none;align-items:flex-end;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal-sheet{background:#fff;width:100%;max-width:600px;border-radius:20px 20px 0 0;padding:24px;max-height:90vh;overflow-y:auto;animation:slideUp .3s}
 @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
-.modal-title{font-size:18px;font-weight:700;color:#1e3c72;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center}
-.modal-close{background:none;border:none;font-size:22px;cursor:pointer;color:#999}
 
-/* ── NOTIFICACIÓN MEJORADA ── */
-.notif{position:fixed;top:16px;right:16px;left:16px;max-width:420px;margin:0 auto;background:#fff;padding:14px 18px;border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.18);display:flex;align-items:center;gap:12px;z-index:2000;animation:slideIn .35s cubic-bezier(.175,.885,.32,1.275)}
-@keyframes slideIn{from{transform:translateY(-90px) scale(.9);opacity:0}to{transform:translateY(0) scale(1);opacity:1}}
-.notif.success{border-left:5px solid #27ae60;background:linear-gradient(135deg,#fff,#f0fff4)}
-.notif.error{border-left:5px solid #e74c3c;background:linear-gradient(135deg,#fff,#fff5f5)}
-.notif.warning{border-left:5px solid #f39c12;background:linear-gradient(135deg,#fff,#fffbf0)}
-.notif.info{border-left:5px solid #2a5298;background:linear-gradient(135deg,#fff,#f0f4ff)}
-.notif-icon{font-size:26px;flex-shrink:0}
-.notif-text{font-size:14px;color:#333;font-weight:600;line-height:1.4}
-.notif-sub{font-size:12px;color:#888;font-weight:400;margin-top:2px}
-.notif-close{margin-left:auto;background:none;border:none;font-size:18px;color:#bbb;cursor:pointer;padding:0 4px;flex-shrink:0}
-
-/* ── PANTALLA BIENVENIDA ── */
-.splash{position:fixed;inset:0;background:linear-gradient(135deg,#0d1f4e,#1e3c72,#2a5298);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .7s ease}
-.splash.hide{opacity:0;pointer-events:none}
-.splash-logo{font-size:72px;animation:logoBounce .9s ease both}
-.splash-title{color:#fff;font-size:34px;font-weight:800;margin-top:14px;letter-spacing:2px;text-shadow:0 2px 10px rgba(0,0,0,.3)}
-.splash-sub{color:rgba(255,255,255,.7);font-size:14px;margin-top:6px;letter-spacing:1px}
-.splash-bar{width:220px;height:5px;background:rgba(255,255,255,.2);border-radius:3px;margin-top:32px;overflow:hidden}
-.splash-bar-fill{height:100%;background:linear-gradient(90deg,#74b9ff,#fff);border-radius:3px;animation:loadBar 2s ease forwards}
-.splash-dots{display:flex;gap:8px;margin-top:20px}
-.splash-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.3)}
-.splash-dot.active{background:#fff;animation:dotPulse .6s ease infinite alternate}
-.splash-dot:nth-child(2){animation-delay:.2s}.splash-dot:nth-child(3){animation-delay:.4s}
-@keyframes logoBounce{0%{transform:scale(0) rotate(-30deg)}60%{transform:scale(1.25) rotate(8deg)}80%{transform:scale(.95)}100%{transform:scale(1) rotate(0)}}
-@keyframes loadBar{from{width:0}to{width:100%}}
-@keyframes dotPulse{from{opacity:.3;transform:scale(.8)}to{opacity:1;transform:scale(1.2)}}
-
-/* ── TOGGLE SONIDO ── */
-.sound-toggle{position:fixed;bottom:22px;right:18px;z-index:500;background:linear-gradient(135deg,#1e3c72,#2a5298);border:none;border-radius:50%;width:52px;height:52px;color:#fff;font-size:22px;cursor:pointer;box-shadow:0 4px 18px rgba(30,60,114,.45);transition:all .25s;display:flex;align-items:center;justify-content:center}
-.sound-toggle:active{transform:scale(.88)}
-.sound-toggle.muted{background:linear-gradient(135deg,#999,#666);box-shadow:0 4px 12px rgba(0,0,0,.2)}
-
-/* ── CHART ── */
-.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
-.bar-label{width:110px;font-size:12px;color:#555;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0}
-.bar-track{flex:1;height:22px;background:#f0f4f8;border-radius:4px;overflow:hidden}
-.bar-fill{height:100%;background:linear-gradient(90deg,#1e3c72,#2a5298);border-radius:4px;display:flex;align-items:center;padding:0 8px;color:#fff;font-size:11px;font-weight:700;min-width:28px;transition:width .4s}
-
-/* ── QUICK ACTIONS ── */
-.qa-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
-.qa-btn{background:linear-gradient(135deg,#1e3c72,#2a5298);color:#fff;border:none;border-radius:12px;padding:16px 10px;font-size:12px;font-weight:600;cursor:pointer;text-align:center;transition:all .2s;box-shadow:0 3px 10px rgba(30,60,114,.25)}
-.qa-btn:active{transform:scale(.96)}
-.qa-icon{font-size:26px;display:block;margin-bottom:6px}
-
-/* ── EMPTY ── */
-.empty{text-align:center;padding:40px 20px;color:#aaa}
-.empty-icon{font-size:48px;margin-bottom:10px}
-
-/* ── ALERT ITEMS ── */
-.alert-box{background:#fff9e6;border:1px solid #ffd54f;border-left:4px solid #f39c12;border-radius:10px;padding:12px;margin-bottom:10px}
-.alert-box.critical{background:#ffebee;border-color:#ef9a9a;border-left-color:#e74c3c}
-.alert-actions{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
-.alert-btn{padding:5px 12px;border-radius:6px;border:1px solid currentColor;background:#fff;font-size:12px;font-weight:600;cursor:pointer}
-
-/* ── FOTO HERRAMIENTA ── */
-.photo-capture{border:2px dashed #d0d8e8;border-radius:12px;padding:16px;text-align:center;background:#f8fafc;margin-bottom:14px;cursor:pointer;transition:all .2s}
-.photo-capture:hover{border-color:#2a5298;background:#f0f4ff}
-.photo-capture.has-photo{border-style:solid;border-color:#27ae60;background:#f0fff4;padding:8px}
-.photo-preview{width:100%;max-width:200px;border-radius:8px;margin:8px auto;display:block}
-.photo-thumb{width:60px;height:60px;object-fit:cover;border-radius:8px;border:2px solid #e0e8f0;cursor:pointer;transition:all .2s}
-.photo-thumb:hover{transform:scale(1.05);border-color:#2a5298}
-.tool-card .photo-thumb{margin-top:8px}
-
-/* ── MODAL IMAGEN AMPLIADA ── */
-.img-modal{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9999;display:none;align-items:center;justify-content:center;padding:20px}
-.img-modal.active{display:flex}
-.img-modal img{max-width:100%;max-height:90vh;border-radius:12px;box-shadow:0 8px 40px rgba(0,0,0,.5)}
-.img-modal-close{position:absolute;top:20px;right:20px;background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.3);color:#fff;font-size:28px;width:50px;height:50px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(10px)}
-
-/* ── BOTONES SCANNER ── */
-.scanner-btns{display:flex;gap:8px;margin-bottom:14px}
-.scanner-btn{flex:1;padding:12px;border:2px solid #e0e8f0;background:#fff;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px}
-.scanner-btn.active{border-color:#2a5298;background:#f0f4ff;color:#1e3c72}
-.scanner-btn:hover{border-color:#2a5298}
-
-/* ── INSTALL PROMPT ── */
-.install-prompt{position:fixed;bottom:80px;left:16px;right:16px;max-width:400px;margin:0 auto;background:linear-gradient(135deg,#1e3c72,#2a5298);color:#fff;padding:14px 18px;border-radius:14px;box-shadow:0 8px 30px rgba(30,60,114,.4);z-index:600;display:none;animation:slideUp .4s ease}
-.install-prompt.show{display:flex}
-.install-prompt-icon{font-size:32px;margin-right:12px}
-.install-prompt-text{flex:1}
-.install-prompt-title{font-weight:700;font-size:14px;margin-bottom:3px}
-.install-prompt-sub{font-size:12px;opacity:.85}
-.install-btn{background:#fff;color:#1e3c72;border:none;padding:8px 16px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;margin-left:8px}
-.install-close{background:none;border:none;color:#fff;font-size:20px;cursor:pointer;padding:0 6px;opacity:.7}
-
-/* ── MANTENIMIENTO BADGE ── */
-.maint-badge{display:inline-flex;align-items:center;gap:4px;background:#fff3e0;color:#e65100;border:1px solid #ffcc80;border-radius:12px;padding:3px 8px;font-size:11px;font-weight:600;margin-left:6px}
-.maint-badge.due{background:#ffebee;color:#c62828;border-color:#ef9a9a}
-.maint-badge.ok{background:#e8f5e9;color:#2e7d32;border-color:#a5d6a7}
-
-/* ── SYNC INDICATOR ── */
-.sync-indicator{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#27ae60,#1e8449);color:#fff;padding:8px 16px;border-radius:20px;font-size:12px;font-weight:600;box-shadow:0 4px 15px rgba(39,174,96,.4);z-index:600;display:none;animation:slideUp .3s ease}
-.sync-indicator.show{display:flex;align-items:center;gap:8px}
-.sync-spinner{width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-
-/* ── DASHBOARD MEJORADO ── */
-.dash-section{margin-bottom:20px}
-.dash-section-title{font-size:15px;font-weight:700;color:#1e3c72;margin-bottom:12px;display:flex;align-items:center;gap:8px}
-.dash-section-title-icon{font-size:18px}
-.stat-mini{display:flex;align-items:center;justify-content:space-between;background:#f8fafc;padding:10px 14px;border-radius:10px;margin-bottom:8px;border-left:3px solid #2a5298}
-.stat-mini-label{font-size:12px;color:#888}
-.stat-mini-value{font-size:18px;font-weight:800;color:#1e3c72}
-
-/* ── GOOGLE DRIVE MODAL ── */
-.gdrive-modal{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999;display:none;align-items:center;justify-content:center}
-.gdrive-modal.active{display:flex}
-.gdrive-box{background:#fff;border-radius:20px;padding:24px;width:90%;max-width:450px;max-height:85vh;overflow-y:auto}
-.gdrive-title{font-size:18px;font-weight:700;color:#1e3c72;margin-bottom:16px;display:flex;align-items:center;gap:10px}
-.gdrive-status{background:#f0f4ff;border:2px solid #c0ccee;border-radius:12px;padding:14px;margin-bottom:16px;text-align:center}
-.gdrive-status.connected{background:#e8f5e9;border-color:#a5d6a7}
-.gdrive-status.error{background:#ffebee;border-color:#ef9a9a}
-.gdrive-btn{width:100%;padding:14px;border:none;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px;transition:all .2s}
-.gdrive-btn-primary{background:linear-gradient(135deg,#4285f4,#1a73e8);color:#fff}
-.gdrive-btn-primary:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(66,133,244,.3)}
-.gdrive-btn-secondary{background:#f0f4ff;color:#1e3c72;border:2px solid #c0ccee}
-
-/* ── RESPONSIVE ── */
-@media(max-width:400px){.kpi-val{font-size:28px}.tecnico-name{font-size:14px}}
+.form-input{width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;font-size:16px;background:#f9f9f9;margin-bottom:15px;transition:0.2s}
+.form-input:focus{background:#fff;border-color:#1e3c72;outline:none}
+.settings-btn{width:100%;padding:14px;background:#fff;border:1px solid #eee;border-radius:12px;margin-bottom:10px;text-align:left;font-weight:600;display:flex;align-items:center;gap:10px;color:#333;cursor:pointer}
+.settings-btn.primary{background:#1e3c72;color:#fff;border:none}
+.settings-btn.danger{background:#ffebee;color:#c0392b;border:none}
+.cat-pill{padding:6px 12px;border-radius:15px;font-size:12px;background:#eee;border:none;cursor:pointer}
+.cat-pill.active{background:#1e3c72;color:#fff}
 </style>
 </head>
 <body>
 
-<!-- SPLASH SCREEN -->
-<div class="splash" id="splash">
-  <div class="splash-logo">⚡</div>
-  <div class="splash-title">IsivoltPro</div>
-  <div class="splash-sub">Control Inteligente de Inventario</div>
-  <div class="splash-bar"><div class="splash-bar-fill"></div></div>
-  <div class="splash-dots">
-    <div class="splash-dot active"></div>
-    <div class="splash-dot active"></div>
-    <div class="splash-dot active"></div>
+<div id="login-overlay">
+  <div class="login-box">
+    <div style="font-size:40px;margin-bottom:10px">⚡</div>
+    <h3>IsivoltPro</h3>
+    <p style="font-size:12px;opacity:0.7;margin-bottom:20px">Sistema de Gestión</p>
+    <div class="pin-dots">
+      <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
+    </div>
+    <div class="numpad" id="numpad"></div>
+    <p style="margin-top:20px;font-size:10px;opacity:0.4">PIN por defecto: 1234</p>
   </div>
 </div>
 
-<!-- BOTÓN SONIDO -->
-<button class="sound-toggle" id="soundBtn" onclick="toggleSound()" title="Activar/desactivar sonido">🔊</button>
-
-<!-- INDICADOR SINCRONIZACIÓN -->
-<div class="sync-indicator" id="syncIndicator">
-  <div class="sync-spinner"></div>
-  <span id="syncText">Sincronizando...</span>
-</div>
-
-<!-- INSTALL PROMPT PWA -->
-<div class="install-prompt" id="installPrompt">
-  <div class="install-prompt-icon">📱</div>
-  <div class="install-prompt-text">
-    <div class="install-prompt-title">Instalar IsivoltPro</div>
-    <div class="install-prompt-sub">Acceso rápido desde tu pantalla de inicio</div>
+<header class="header">
+  <div class="app-title">IsivoltPro</div>
+  <div class="header-actions">
+    <button onclick="renderSettings()" class="btn-icon">⚙️</button>
   </div>
-  <button class="install-btn" id="installBtn">Instalar</button>
-  <button class="install-close" onclick="document.getElementById('installPrompt').classList.remove('show')">✕</button>
-</div>
+</header>
 
-<!-- MODAL IMAGEN AMPLIADA -->
-<div class="img-modal" id="imgModal" onclick="closeImageModal()">
-  <button class="img-modal-close">✕</button>
-  <img id="imgModalImg" src="" alt="Imagen ampliada">
-</div>
+<main>
+  <div id="view-dash" class="view active">
+    <div class="card" style="background:linear-gradient(135deg,#1e3c72,#2a5298);color:#fff;padding:25px">
+      <h2 style="font-size:18px;opacity:0.9">Resumen Global</h2>
+      <div class="kpi-grid">
+        <div class="kpi-box"><div id="kpi-total" class="kpi-val">0</div><div class="kpi-lbl">ITEMS</div></div>
+        <div class="kpi-box"><div id="kpi-value" class="kpi-val">0€</div><div class="kpi-lbl">VALOR</div></div>
+        <div class="kpi-box"><div id="kpi-low" class="kpi-val" style="color:#ff8a80">0</div><div class="kpi-lbl">BAJO</div></div>
+        <div class="kpi-box"><div id="kpi-loan" class="kpi-val" style="color:#81d4fa">0</div><div class="kpi-lbl">PRESTADO</div></div>
+      </div>
+    </div>
 
-<!-- HEADER -->
-<div class="header">
-  <div style="display:flex;align-items:center;gap:12px">
-    <div class="header-logo">⚡</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <button onclick="openModal()" class="card" style="display:flex;align-items:center;gap:10px;border:none;cursor:pointer;margin:0">
+        <span style="font-size:24px;background:#e8f5e9;width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:50%">➕</span>
+        <div style="text-align:left"><div style="font-weight:bold">Nuevo</div><div style="font-size:10px;color:#666">Material</div></div>
+      </button>
+      <button onclick="startScan()" class="card" style="display:flex;align-items:center;gap:10px;border:none;cursor:pointer;margin:0">
+        <span style="font-size:24px;background:#e3f2fd;width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:50%">📷</span>
+        <div style="text-align:left"><div style="font-weight:bold">Escanear</div><div style="font-size:10px;color:#666">Código QR</div></div>
+      </button>
+    </div>
+  </div>
+
+  <div id="view-items" class="view">
+    <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:10px;margin-bottom:5px" id="cat-filters">
+      <button class="cat-pill active" onclick="filterCat('all', this)">Todo</button>
+      <button class="cat-pill" onclick="filterCat('Herramientas', this)">Herramientas</button>
+      <button class="cat-pill" onclick="filterCat('Material', this)">Material</button>
+      <button class="cat-pill" onclick="filterCat('Seguridad', this)">Seguridad</button>
+      <button class="cat-pill" onclick="filterCat('Consumibles', this)">Consumibles</button>
+    </div>
+    
+    <input type="text" id="search-input" placeholder="🔍 Buscar material, ubicación..." class="form-input" onkeyup="renderList()">
+    <div class="card" style="padding:0;overflow:hidden" id="inventory-list"></div>
+  </div>
+
+  <div id="view-scan" class="view">
+    <div class="card">
+      <h3 style="text-align:center;margin-bottom:15px">Escáner Activo</h3>
+      <div style="position:relative;height:300px;background:#000;border-radius:12px;overflow:hidden">
+        <video id="qr-video" style="width:100%;height:100%;object-fit:cover"></video>
+        <div style="position:absolute;inset:0;border:2px solid rgba(255,255,255,0.5);display:flex;align-items:center;justify-content:center">
+          <div style="width:200px;height:200px;border:2px solid #2ecc71;border-radius:20px;box-shadow:0 0 0 999px rgba(0,0,0,0.5)"></div>
+        </div>
+      </div>
+      <button onclick="stopScan()" class="settings-btn danger" style="justify-content:center;margin-top:15px">Cancelar Escáner</button>
+    </div>
+  </div>
+
+  <div id="view-settings" class="view">
+    
+    <div class="card" style="border-left:5px solid #27ae60">
+      <h3 style="margin-bottom:5px">💾 COPIA DE SEGURIDAD</h3>
+      <p style="font-size:12px;color:#666;margin-bottom:15px">Guarda tus datos (incluidas las fotos) para no perderlos.</p>
+      
+      <button onclick="backupSystem()" class="settings-btn primary">
+        <i>⬇️</i> Descargar Copia COMPLETA (.isv)
+      </button>
+      
+      <button onclick="document.getElementById('restore-file').click()" class="settings-btn danger" style="background:#fff;border:1px solid #c0392b;color:#c0392b">
+        <i>⬆️</i> Restaurar Copia Completa
+      </button>
+      <input type="file" id="restore-file" hidden accept=".isv,.json" onchange="restoreSystem(this)">
+    </div>
+
+    <div class="card">
+      <h3>📊 Oficina y Excel</h3>
+      <p style="font-size:12px;color:#666;margin-bottom:15px">Exportar listado para administración.</p>
+      <button onclick="exportToExcel()" class="settings-btn"><i>📄</i> Exportar a Excel</button>
+      <div style="border-top:1px solid #eee;padding-top:10px;margin-top:10px">
+        <button onclick="document.getElementById('import-excel').click()" class="settings-btn"><i>📥</i> Importar desde Excel</button>
+        <input type="file" id="import-excel" hidden accept=".xlsx,.xls" onchange="importFromExcel(this)">
+        <p style="font-size:10px;color:#c0392b">⚠️ Importar Excel no recupera las fotos, solo datos.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Seguridad</h3>
+      <button onclick="changePin()" class="settings-btn"><i>🔒</i> Cambiar PIN de Acceso</button>
+      <div style="font-size:10px;text-align:center;margin-top:10px;color:#999">Versión 3.0 Pro</div>
+    </div>
+  </div>
+</main>
+
+<div class="modal-overlay" id="item-modal">
+  <div class="modal-sheet">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <h3 id="modal-title">Material</h3>
+      <button onclick="deleteItem()" style="border:none;background:none;color:#c0392b;font-weight:bold;font-size:12px">ELIMINAR</button>
+    </div>
+    <input type="hidden" id="item-id">
+    
+    <div onclick="document.getElementById('photo-input').click()" style="width:100%;height:120px;background:#f0f4f8;border:2px dashed #ccc;border-radius:12px;display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:15px;cursor:pointer">
+      <img id="preview-img" style="width:100%;height:100%;object-fit:cover;display:none">
+      <span id="preview-text" style="color:#999;font-size:12px;text-align:center">📷 Tocar para añadir foto</span>
+    </div>
+    <input type="file" id="photo-input" hidden accept="image/*" onchange="handlePhoto(this)">
+
+    <input type="text" id="item-name" class="form-input" placeholder="Nombre del Material">
+    
+    <select id="item-cat" class="form-input">
+      <option value="Herramientas">Herramientas</option>
+      <option value="Material">Material Eléctrico</option>
+      <option value="Seguridad">Seguridad / EPIS</option>
+      <option value="Consumibles">Consumibles</option>
+      <option value="Varios">Varios</option>
+    </select>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div>
+        <label style="font-size:11px;font-weight:bold;margin-left:5px">Stock Actual</label>
+        <input type="number" id="item-stock" class="form-input">
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:bold;margin-left:5px">Stock Mínimo</label>
+        <input type="number" id="item-min" class="form-input">
+      </div>
+    </div>
+
+    <input type="number" id="item-price" class="form-input" placeholder="Precio Unidad (€)">
+    
     <div>
-      <div style="color:#fff;font-size:20px;font-weight:800;line-height:1.2">IsivoltPro</div>
-      <div class="header-sub">Control Inteligente</div>
+      <label style="font-size:11px;font-weight:bold;margin-left:5px">Ubicación / Asignado a</label>
+      <input type="text" id="item-assign" class="form-input" placeholder="Ej: Furgoneta 1, Juan...">
+    </div>
+
+    <div style="display:flex;gap:10px;margin-top:10px">
+      <button onclick="closeModal()" class="settings-btn" style="justify-content:center;background:#eee">Cancelar</button>
+      <button onclick="saveItem()" class="settings-btn primary" style="justify-content:center">Guardar</button>
     </div>
   </div>
-  <button onclick="openSettingsMenu()" style="background:rgba(255,255,255,.15);border:none;color:#fff;padding:8px;border-radius:8px;cursor:pointer;font-size:18px;width:40px;height:40px;display:flex;align-items:center;justify-content:center">
-    ⚙️
+</div>
+
+<nav class="nav-bar">
+  <button class="nav-item active" onclick="switchTab('dash')">
+    <span class="nav-icon">📊</span> Inicio
   </button>
-</div>
-
-<!-- MENÚ CONFIGURACIÓN -->
-<div class="settings-menu" id="settingsMenu">
-  <button class="settings-item" onclick="toggleSound();closeSettingsMenu()">
-    <div class="settings-item-icon" id="sound-icon-menu">🔊</div>
-    <div class="settings-item-text">
-      <span class="settings-item-label">Sonido</span>
-      <span class="settings-item-desc" id="sound-status-menu">Activado</span>
-    </div>
+  <button class="nav-item" onclick="switchTab('items')">
+    <span class="nav-icon">📦</span> Stock
   </button>
-  
-  <button class="settings-item" onclick="openGDriveSync()">
-    <div class="settings-item-icon">☁️</div>
-    <div class="settings-item-text">
-      <span class="settings-item-label">Sincronizar con Drive</span>
-      <span class="settings-item-desc">Backup automático</span>
-    </div>
+  <button class="nav-item" onclick="switchTab('settings')">
+    <span class="nav-icon">🛠</span> Ajustes
   </button>
-  
-  <div class="settings-divider"></div>
-  
-  <button class="settings-item" onclick="exportExcel();closeSettingsMenu()">
-    <div class="settings-item-icon">📊</div>
-    <div class="settings-item-text">
-      <span class="settings-item-label">Exportar Excel</span>
-      <span class="settings-item-desc">Descargar reporte completo</span>
-    </div>
-  </button>
-  
-  <button class="settings-item" onclick="exportCSV();closeSettingsMenu()">
-    <div class="settings-item-icon">📄</div>
-    <div class="settings-item-text">
-      <span class="settings-item-label">Exportar CSV</span>
-      <span class="settings-item-desc">Formato compatible</span>
-    </div>
-  </button>
-  
-  <div class="settings-divider"></div>
-  
-  <button class="settings-item" onclick="downloadApp();closeSettingsMenu()">
-    <div class="settings-item-icon">💾</div>
-    <div class="settings-item-text">
-      <span class="settings-item-label">Descargar App</span>
-      <span class="settings-item-desc">Guardar archivo HTML</span>
-    </div>
-  </button>
-  
-  <button class="settings-item" onclick="clearAllData()">
-    <div class="settings-item-icon">🗑️</div>
-    <div class="settings-item-text">
-      <span class="settings-item-label" style="color:#e74c3c">Borrar todos los datos</span>
-      <span class="settings-item-desc">Acción irreversible</span>
-    </div>
-  </button>
-</div>
-
-<!-- TABS -->
-<div class="tabs">
-
-<!-- MODAL GOOGLE DRIVE -->
-<div class="gdrive-modal" id="gdriveModal">
-  <div class="gdrive-box">
-    <div class="gdrive-title">
-      <span>☁️</span>
-      <span>Sincronización con Google Drive</span>
-    </div>
-    
-    <div class="gdrive-status" id="gdriveStatus">
-      <div style="font-size:40px;margin-bottom:8px" id="gdriveStatusIcon">☁️</div>
-      <div style="font-weight:700;font-size:14px;margin-bottom:4px" id="gdriveStatusTitle">No conectado</div>
-      <div style="font-size:12px;color:#888" id="gdriveStatusDesc">Conecta para hacer backup automático</div>
-    </div>
-    
-    <div id="gdriveActions">
-      <button class="gdrive-btn gdrive-btn-primary" onclick="connectGoogleDrive()">
-        <span>🔗</span>
-        <span>Conectar con Google Drive</span>
-      </button>
-      
-      <button class="gdrive-btn gdrive-btn-secondary" onclick="manualBackup()">
-        <span>💾</span>
-        <span>Hacer Backup Manual</span>
-      </button>
-      
-      <button class="gdrive-btn gdrive-btn-secondary" onclick="restoreFromBackup()">
-        <span>📥</span>
-        <span>Restaurar desde Backup</span>
-      </button>
-    </div>
-    
-    <div style="margin-top:16px;padding:12px;background:#f8fafc;border-radius:10px;font-size:12px;color:#666">
-      <div style="font-weight:600;margin-bottom:6px">ℹ️ Información</div>
-      <ul style="margin:0;padding-left:18px;line-height:1.6">
-        <li>Backup automático cada hora</li>
-        <li>Sincroniza materiales, personal e historial</li>
-        <li>Restaura en cualquier dispositivo</li>
-        <li>Tus datos siempre seguros</li>
-      </ul>
-    </div>
-    
-    <button class="btn btn-ghost btn-full" style="margin-top:14px" onclick="closeModal('gdriveModal')">Cerrar</button>
-  </div>
-</div>
-
-<!-- TABS -->
-  <button class="tab active" onclick="switchTab('dashboard',this)">📊 Panel</button>
-  <button class="tab" onclick="switchTab('scan',this)">📷 Escanear</button>
-  <button class="tab" onclick="switchTab('tools',this)">📦 Materiales</button>
-  <button class="tab" onclick="switchTab('workers',this)">👷 Personal</button>
-  <button class="tab" onclick="switchTab('history',this)">📋 Historial</button>
-</div>
-
-<div class="content">
-
-<!-- ═══════════════ DASHBOARD ═══════════════ -->
-<div id="tab-dashboard" class="tab-content active">
-
-  <div class="kpi-row">
-    <div class="kpi kpi-blue">
-      <div class="kpi-val" id="kpi-total">0</div>
-      <div class="kpi-lbl">📦 Total Materiales</div>
-    </div>
-    <div class="kpi kpi-green">
-      <div class="kpi-val" id="kpi-avail">0</div>
-      <div class="kpi-lbl">✅ Disponibles</div>
-      <div class="kpi-bar"><div class="kpi-bar-fill" id="kpi-avail-bar"></div></div>
-    </div>
-    <div class="kpi kpi-red">
-      <div class="kpi-val" id="kpi-use">0</div>
-      <div class="kpi-lbl">🔧 En Uso</div>
-      <div class="kpi-bar"><div class="kpi-bar-fill" id="kpi-use-bar"></div></div>
-    </div>
-    <div class="kpi kpi-orange">
-      <div class="kpi-val" id="kpi-pers">0</div>
-      <div class="kpi-lbl">👷 Personal Activo</div>
-    </div>
-  </div>
-
-  <!-- ESTADÍSTICAS RÁPIDAS -->
-  <div class="card dash-section">
-    <div class="dash-section-title">
-      <span class="dash-section-title-icon">📊</span>
-      <span>Estadísticas de Hoy</span>
-    </div>
-    <div id="today-stats"></div>
-  </div>
-
-  <!-- ALERTAS -->
-  <div class="card" id="alerts-card" style="display:none">
-    <div class="card-title">⚠️ Atención requerida <span class="tab-badge" id="alert-count">0</span></div>
-    <div id="alerts-body"></div>
-  </div>
-
-  <!-- TÉCNICOS CON HERRAMIENTAS — bloque principal -->
-  <div class="card dash-section">
-    <div class="dash-section-title">
-      <span class="dash-section-title-icon">🔧</span>
-      <span>Herramientas por Técnico</span>
-    </div>
-    <div id="tecnicos-lista"></div>
-  </div>
-
-  <!-- GRÁFICO ACTIVIDAD SEMANAL -->
-  <div class="card dash-section">
-    <div class="dash-section-title">
-      <span class="dash-section-title-icon">📈</span>
-      <span>Actividad Semanal</span>
-    </div>
-    <div id="weekly-chart" style="display:flex;align-items:flex-end;justify-content:space-around;height:90px;gap:6px;padding-bottom:4px;border-bottom:2px solid #e8ecf0"></div>
-    <div style="display:flex;justify-content:space-around;margin-top:4px" id="weekly-labels"></div>
-  </div>
-
-  <!-- TOP MATERIALES -->
-  <div class="card dash-section">
-    <div class="dash-section-title">
-      <span class="dash-section-title-icon">🔥</span>
-      <span>Materiales Más Usados</span>
-    </div>
-    <div id="top-materials"></div>
-  </div>
-
-  <!-- ACCIONES RÁPIDAS -->
-  <div class="qa-grid">
-    <button class="qa-btn" onclick="switchTab('scan',document.querySelectorAll('.tab')[1])">
-      <span class="qa-icon">📷</span>Escanear QR
-    </button>
-    <button class="qa-btn" onclick="openAddTool()">
-      <span class="qa-icon">➕</span>Añadir Material
-    </button>
-    <button class="qa-btn" onclick="openGDriveSync()">
-      <span class="qa-icon">☁️</span>Backup
-    </button>
-  </div>
-</div>
-
-<!-- ═══════════════ ESCANEAR ═══════════════ -->
-<div id="tab-scan" class="tab-content">
-
-  <!-- Modo de escaneo -->
-  <div class="scan-mode-tabs">
-    <button class="scan-mode-btn active" id="mode-btn-normal" onclick="setScanMode('normal')">
-      📦 Modo Normal
-    </button>
-    <button class="scan-mode-btn" id="mode-btn-tecnico" onclick="setScanMode('tecnico')">
-      👷 Modo Técnico
-    </button>
-  </div>
-
-  <!-- MODO NORMAL -->
-  <div id="mode-normal">
-    <!-- Selector QR vs Barcode -->
-    <div class="scanner-btns">
-      <button class="scanner-btn active" id="scan-qr-btn" onclick="setScannerType('qr')">
-        📱 Código QR
-      </button>
-      <button class="scanner-btn" id="scan-barcode-btn" onclick="setScannerType('barcode')">
-        📊 Código de Barras
-      </button>
-    </div>
-
-    <div class="scan-section">
-      <div class="scan-state-box">
-        <div class="scan-state-icon">📷</div>
-        <div style="font-weight:700;font-size:16px;margin-bottom:6px" id="scan-title">Escanear Código QR</div>
-        <div style="color:#888;font-size:13px" id="scan-subtitle">Escanea el QR de un material para registrar entrada/salida</div>
-      </div>
-      <video id="video" autoplay playsinline></video>
-      <canvas id="canvas" style="display:none"></canvas>
-      <div id="scanResult"></div>
-      <button id="startScanBtn" class="btn btn-primary btn-full" onclick="startScanning()">📷 Iniciar Escaneo</button>
-      <button id="stopScanBtn" class="btn btn-ghost btn-full" style="display:none;margin-top:8px" onclick="stopScanning()">⏹ Detener</button>
-    </div>
-  </div>
-
-  <!-- MODO TÉCNICO: primero escanea técnico, luego herramienta -->
-  <div id="mode-tecnico" style="display:none">
-    <div class="scan-pending" id="tecnico-flow-box">
-      <div style="font-weight:700;font-size:15px;color:#e65100;margin-bottom:10px">⚡ Modo Técnico — Flujo de 2 pasos</div>
-
-      <div class="scan-step">
-        <div class="step-num active" id="step1-num">1</div>
-        <div>
-          <div style="font-weight:600;font-size:13px">Escanear QR del Técnico</div>
-          <div style="font-size:12px;color:#888" id="step1-info">Pide al técnico su tarjeta QR personal</div>
-        </div>
-      </div>
-      <div class="scan-step">
-        <div class="step-num" id="step2-num">2</div>
-        <div>
-          <div style="font-weight:600;font-size:13px">Escanear QR de la Herramienta</div>
-          <div style="font-size:12px;color:#888" id="step2-info">Escanea el QR pegado en la herramienta</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="scan-section">
-      <video id="video2" autoplay playsinline></video>
-      <canvas id="canvas2" style="display:none"></canvas>
-      <div id="scanResult2"></div>
-      <button id="startScanBtn2" class="btn btn-primary btn-full" onclick="startScanning2()">📷 Iniciar Escaneo Técnico</button>
-      <button id="stopScanBtn2" class="btn btn-ghost btn-full" style="display:none;margin-top:8px" onclick="stopScanning2()">⏹ Detener</button>
-      <button id="resetFlowBtn" class="btn btn-ghost btn-full" style="display:none;margin-top:8px" onclick="resetTecnicoFlow()">🔄 Reiniciar flujo</button>
-    </div>
-  </div>
-</div>
-
-<!-- ═══════════════ MATERIALES ═══════════════ -->
-<div id="tab-tools" class="tab-content">
-  <div class="search-bar">
-    <input type="text" id="search-tools" placeholder="Buscar material..." oninput="renderTools()">
-  </div>
-  <button class="btn btn-primary btn-full" style="margin-bottom:14px" onclick="openAddTool()">➕ Añadir Material</button>
-  <div id="tools-list"></div>
-</div>
-
-<!-- ═══════════════ PERSONAL ═══════════════ -->
-<div id="tab-workers" class="tab-content">
-  <div class="search-bar">
-    <input type="text" id="search-workers" placeholder="Buscar personal..." oninput="renderWorkers()">
-  </div>
-  <button class="btn btn-primary btn-full" style="margin-bottom:14px" onclick="openAddWorker()">➕ Añadir Personal</button>
-  <div id="workers-list"></div>
-</div>
-
-<!-- ═══════════════ HISTORIAL ═══════════════ -->
-<div id="tab-history" class="tab-content">
-  <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
-    <select id="filter-type" onchange="renderHistory()" style="flex:1;padding:9px;border:2px solid #e0e8f0;border-radius:8px;font-size:13px">
-      <option value="">Todos los movimientos</option>
-      <option value="out">Solo Salidas</option>
-      <option value="in">Solo Entradas</option>
-    </select>
-    <select id="filter-worker" onchange="renderHistory()" style="flex:1;padding:9px;border:2px solid #e0e8f0;border-radius:8px;font-size:13px">
-      <option value="">Todo el personal</option>
-    </select>
-  </div>
-  <div style="display:flex;gap:8px;margin-bottom:14px">
-    <input type="date" id="filter-from" onchange="renderHistory()" style="flex:1;padding:9px;border:2px solid #e0e8f0;border-radius:8px;font-size:13px">
-    <input type="date" id="filter-to" onchange="renderHistory()" style="flex:1;padding:9px;border:2px solid #e0e8f0;border-radius:8px;font-size:13px">
-  </div>
-  <div style="display:flex;gap:8px;margin-bottom:14px">
-    <button class="btn btn-primary" style="flex:1" onclick="exportExcel()">📊 Excel</button>
-    <button class="btn btn-ghost" style="flex:1" onclick="exportCSV()">📄 CSV</button>
-  </div>
-  <div id="history-stats" class="card" style="margin-bottom:14px"></div>
-  <div id="history-list"></div>
-</div>
-
-</div><!-- /content -->
-
-<!-- ══════════ MODALES ══════════ -->
-
-<!-- Modal Movimiento -->
-<div class="modal" id="modal-movement">
-  <div class="modal-box">
-    <div class="modal-title">
-      <span id="mv-title">Registrar Movimiento</span>
-      <button class="modal-close" onclick="closeModal('modal-movement')">✕</button>
-    </div>
-    <div id="mv-content"></div>
-  </div>
-</div>
-
-<!-- Modal Añadir Material -->
-<div class="modal" id="modal-tool">
-  <div class="modal-box">
-    <div class="modal-title">
-      <span>📦 Añadir Material</span>
-      <button class="modal-close" onclick="closeModal('modal-tool')">✕</button>
-    </div>
-    
-    <!-- CAPTURA DE FOTO -->
-    <div class="photo-capture" id="photoCapture" onclick="capturePhoto()">
-      <div id="photoPlaceholder">
-        <div style="font-size:40px;margin-bottom:8px">📷</div>
-        <div style="font-weight:600;font-size:14px;color:#1e3c72">Añadir Foto (Opcional)</div>
-        <div style="font-size:12px;color:#888;margin-top:4px">Toca para capturar con la cámara</div>
-      </div>
-      <img id="photoPreview" class="photo-preview" style="display:none">
-      <input type="file" id="photoInput" accept="image/*" capture="environment" style="display:none" onchange="handlePhotoSelected(event)">
-    </div>
-    
-    <div class="form-group"><label>Nombre *</label><input id="t-name" placeholder="Ej: Taladro Bosch"></div>
-    <div class="form-group"><label>Código *</label><input id="t-code" placeholder="Ej: MAT-001"></div>
-    <div class="form-group"><label>Categoría</label>
-      <select id="t-cat">
-        <option value="">-- Seleccionar --</option>
-        <option>Herramientas</option><option>Material Eléctrico</option>
-        <option>Equipos</option><option>Consumibles</option>
-        <option>EPIs</option><option>Otro</option>
-      </select>
-    </div>
-    <div class="form-group"><label>Ubicación</label><input id="t-loc" placeholder="Ej: Almacén A - Estante 3"></div>
-    <div class="form-group"><label>Descripción</label><input id="t-desc" placeholder="Detalles adicionales"></div>
-    
-    <!-- MANTENIMIENTO -->
-    <div class="form-group">
-      <label>Mantenimiento cada (meses) - Opcional</label>
-      <input id="t-maint" type="number" min="0" placeholder="Ej: 6 (dejar vacío si no aplica)">
-    </div>
-    
-    <button class="btn btn-primary btn-full" onclick="saveTool()">💾 Guardar Material</button>
-  </div>
-</div>
-
-<!-- Modal Añadir Personal -->
-<div class="modal" id="modal-worker">
-  <div class="modal-box">
-    <div class="modal-title">
-      <span>👷 Añadir Personal</span>
-      <button class="modal-close" onclick="closeModal('modal-worker')">✕</button>
-    </div>
-    <div class="form-group"><label>Nombre completo *</label><input id="w-name" placeholder="Ej: Juan García"></div>
-    <div class="form-group"><label>Código empleado *</label><input id="w-code" placeholder="Ej: EMP-001"></div>
-    <div class="form-group"><label>Departamento</label>
-      <select id="w-dept">
-        <option value="">-- Seleccionar --</option>
-        <option>Eléctrico</option><option>Fontanería</option>
-        <option>Carpintería</option><option>Mantenimiento</option>
-        <option>Producción</option><option>Almacén</option><option>Otro</option>
-      </select>
-    </div>
-    <div class="form-group"><label>Teléfono</label><input id="w-phone" type="tel" placeholder="612345678"></div>
-    <div class="form-group"><label>Email</label><input id="w-email" type="email" placeholder="juan@empresa.com"></div>
-    <button class="btn btn-primary btn-full" onclick="saveWorker()">💾 Guardar Personal</button>
-  </div>
-</div>
-
-<!-- Modal QR -->
-<div class="modal" id="modal-qr">
-  <div class="modal-box" style="text-align:center">
-    <div class="modal-title">
-      <span>📱 Código QR</span>
-      <button class="modal-close" onclick="closeModal('modal-qr')">✕</button>
-    </div>
-    <div id="qr-item-info" style="margin-bottom:14px"></div>
-    <div id="qr-wrapper" style="min-height:280px;display:flex;align-items:center;justify-content:center">
-      <div style="color:#aaa">⏳ Generando...</div>
-    </div>
-    <div style="display:flex;gap:8px;margin-top:16px">
-      <button class="btn btn-primary" style="flex:1" onclick="downloadQR()">💾 Descargar</button>
-      <button class="btn btn-ghost" style="flex:1" onclick="printQR()">🖨️ Imprimir</button>
-    </div>
-  </div>
-</div>
-
-<!-- Modal Devolver herramienta desde tarjeta técnico -->
-<div class="modal" id="modal-return">
-  <div class="modal-box">
-    <div class="modal-title">
-      <span id="return-title">📥 Devolver Herramienta</span>
-      <button class="modal-close" onclick="closeModal('modal-return')">✕</button>
-    </div>
-    <div id="return-content"></div>
-  </div>
-</div>
+</nav>
+<div class="fab" onclick="openModal()">+</div>
 
 <script>
-// ════════════════════════════════
-// DATOS
-// ════════════════════════════════
-let tools   = JSON.parse(localStorage.getItem('iv_tools')   || '[]');
-let workers = JSON.parse(localStorage.getItem('iv_workers') || '[]');
-let history = JSON.parse(localStorage.getItem('iv_history') || '[]');
+/* ── CONFIGURACIÓN Y ESTADO ── */
+const DB_NAME = 'isivolt_pro_master';
+let inventory = JSON.parse(localStorage.getItem(DB_NAME)) || [];
+let pin = localStorage.getItem('isivolt_pin') || '1234';
+let currentPin = '';
+let currentFilter = 'all';
 
-function save(){
-  localStorage.setItem('iv_tools',   JSON.stringify(tools));
-  localStorage.setItem('iv_workers', JSON.stringify(workers));
-  localStorage.setItem('iv_history', JSON.stringify(history));
-}
+// Inicializar
+window.onload = () => {
+  renderNumpad();
+  document.getElementById('login-overlay').style.display='flex'; // Forzar login
+  updateDashboard();
+  renderList();
+  registerSW(); // Activar modo offline
+};
 
-// Datos de ejemplo si está vacío
-if(!tools.length){
-  tools=[
-    {id:'t1',name:'Taladro Bosch',code:'MAT-001',category:'Herramientas',location:'Almacén A-1',description:'Taladro percutor 750W',status:'available',assignedTo:null},
-    {id:'t2',name:'Multímetro Fluke',code:'MAT-002',category:'Equipos',location:'Taller',description:'Digital true RMS',status:'available',assignedTo:null},
-    {id:'t3',name:'Cable 2.5mm 100m',code:'MAT-003',category:'Material Eléctrico',location:'Almacén B-5',description:'Unipolar azul',status:'available',assignedTo:null},
-    {id:'t4',name:'Amperímetro',code:'MAT-004',category:'Equipos',location:'Almacén A-2',description:'Pinza amperimétrica',status:'available',assignedTo:null},
-  ];
-  workers=[
-    {id:'w1',name:'Juan García',code:'EMP-001',department:'Eléctrico',phone:'612345678',email:'juan@empresa.com'},
-    {id:'w2',name:'María López',code:'EMP-002',department:'Mantenimiento',phone:'698765432',email:'maria@empresa.com'},
-    {id:'w3',name:'Carlos Ruiz',code:'EMP-003',department:'Producción',phone:'655111222',email:'carlos@empresa.com'},
-  ];
-  save();
-}
-
-// ════════════════════════════════
-// NAVEGACIÓN
-// ════════════════════════════════
-function switchTab(name, btn){
-  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  document.getElementById('tab-'+name).classList.add('active');
-  if(btn) btn.classList.add('active');
-  if(name==='dashboard') renderDashboard();
-  if(name==='tools')     renderTools();
-  if(name==='workers')   renderWorkers();
-  if(name==='history')   renderHistory();
-  if(name==='scan')      resetTecnicoFlow();
-}
-
-// ════════════════════════════════
-// DASHBOARD
-// ════════════════════════════════
-function renderDashboard(){
-  const total  = tools.length;
-  const avail  = tools.filter(t=>t.status==='available').length;
-  const inUse  = tools.filter(t=>t.status==='out').length;
-  const active = new Set(tools.filter(t=>t.assignedTo).map(t=>t.assignedTo)).size;
-
-  document.getElementById('kpi-total').textContent = total;
-  document.getElementById('kpi-avail').textContent = avail;
-  document.getElementById('kpi-use').textContent   = inUse;
-  document.getElementById('kpi-pers').textContent  = active;
-
-  const pct = total>0 ? inUse/total*100 : 0;
-  document.getElementById('kpi-avail-bar').style.width = (100-pct)+'%';
-  document.getElementById('kpi-use-bar').style.width   = pct+'%';
-
-  // Estadísticas de hoy
-  renderTodayStats();
-  
-  renderAlerts();
-  renderTecnicos();
-  renderWeekly();
-  renderTopMaterials();
-}
-
-function renderTodayStats(){
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-  const todayHistory = history.filter(h => new Date(h.date).getTime() >= today);
-  
-  const outToday = todayHistory.filter(h => h.type === 'out').length;
-  const inToday = todayHistory.filter(h => h.type === 'in').length;
-  const totalToday = todayHistory.length;
-  
-  // Técnico más activo hoy
-  const techActivity = {};
-  todayHistory.forEach(h => {
-    techActivity[h.workerName] = (techActivity[h.workerName] || 0) + 1;
+/* ── 1. SEGURIDAD (PIN) ── */
+function renderNumpad() {
+  const p=document.getElementById('numpad'); p.innerHTML='';
+  [1,2,3,4,5,6,7,8,9,'C',0,'OK'].forEach(n=>{
+    const b=document.createElement('button'); b.className='num-btn'; b.innerText=n;
+    b.onclick=()=>handlePin(n);
+    if(n==='OK') b.style.background='#27ae60'; if(n==='C') b.style.background='#e74c3c';
+    p.appendChild(b);
   });
-  const topTech = Object.entries(techActivity).sort((a,b) => b[1]-a[1])[0];
-  
-  const el = document.getElementById('today-stats');
-  el.innerHTML = `
-    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">
-      <div class="stat-mini">
-        <div>
-          <div class="stat-mini-label">Salidas</div>
-          <div class="stat-mini-value">${outToday}</div>
-        </div>
-        <div style="font-size:24px">📤</div>
-      </div>
-      <div class="stat-mini">
-        <div>
-          <div class="stat-mini-label">Entradas</div>
-          <div class="stat-mini-value">${inToday}</div>
-        </div>
-        <div style="font-size:24px">📥</div>
-      </div>
-    </div>
-    <div class="stat-mini" style="border-left-color:#f39c12">
-      <div>
-        <div class="stat-mini-label">Total Movimientos Hoy</div>
-        <div class="stat-mini-value">${totalToday}</div>
-      </div>
-      <div style="font-size:24px">🔄</div>
-    </div>
-    ${topTech ? `
-      <div class="stat-mini" style="border-left-color:#27ae60">
-        <div>
-          <div class="stat-mini-label">Técnico más activo hoy</div>
-          <div style="font-size:14px;font-weight:700;color:#1e3c72;margin-top:3px">${topTech[0]}</div>
-        </div>
-        <div style="font-size:24px">🏆</div>
-      </div>
-    ` : ''}
-  `;
 }
-  document.getElementById('kpi-avail').textContent = avail;
-  document.getElementById('kpi-use').textContent   = inUse;
-  document.getElementById('kpi-pers').textContent  = active;
-
-  const pct = total>0 ? inUse/total*100 : 0;
-  document.getElementById('kpi-avail-bar').style.width = (100-pct)+'%';
-  document.getElementById('kpi-use-bar').style.width   = pct+'%';
-
-  renderAlerts();
-  renderTecnicos();
-  renderWeekly();
-  renderTopMaterials();
-}
-
-function renderAlerts(){
-  const card   = document.getElementById('alerts-card');
-  const body   = document.getElementById('alerts-body');
-  const badge  = document.getElementById('alert-count');
-  const now    = new Date();
-  const alerts = [];
-
-  history.forEach(h=>{
-    if(h.type!=='out') return;
-    const tool = tools.find(t=>t.id===h.toolId);
-    if(!tool||tool.status!=='out') return;
-    const days = Math.floor((now-new Date(h.date))/(864e5));
-    if(days>=5) alerts.push({tool,days,workerName:h.workerName,workerId:h.workerId});
-  });
-
-  // Deduplicar por herramienta
-  const seen=new Set();
-  const uniq = alerts.filter(a=>{ if(seen.has(a.tool.id)) return false; seen.add(a.tool.id); return true; });
-  uniq.sort((a,b)=>b.days-a.days);
-
-  badge.textContent = uniq.length;
-  if(!uniq.length){ card.style.display='none'; return; }
-  card.style.display='block';
-
-  body.innerHTML = uniq.map(a=>{
-    const w = workers.find(x=>x.id===a.workerId);
-    const cls = a.days>15 ? 'critical' : '';
-    return `<div class="alert-box ${cls}">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start">
-        <div>
-          <strong>${a.days>15?'🔴':'⚠️'} ${a.tool.name}</strong>
-          <div style="font-size:12px;color:#666;margin-top:2px">Técnico: <strong>${a.workerName}</strong> · Hace ${a.days} días</div>
-        </div>
-        <span style="font-size:11px;font-weight:700;color:${a.days>15?'#c62828':'#e65100'}">${a.days}d</span>
-      </div>
-      <div class="alert-actions">
-        ${w&&w.phone?`<button class="alert-btn" onclick="window.location.href='tel:${w.phone}'" style="color:#1e3c72">📞 Llamar</button>`:''}
-        <button class="alert-btn" onclick="quickReturn('${a.tool.id}')" style="color:#27ae60">📥 Devolver</button>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function renderTecnicos(){
-  const el = document.getElementById('tecnicos-lista');
-  // Técnicos con herramientas
-  const conHerramientas = workers.map(w=>{
-    const assigned = tools.filter(t=>t.assignedTo===w.id);
-    return {...w, assigned};
-  });
-  // Ordenar: primero los que tienen herramientas
-  conHerramientas.sort((a,b)=>b.assigned.length-a.assigned.length);
-
-  if(!conHerramientas.length){ el.innerHTML='<div class="empty"><div class="empty-icon">👷</div><div>Sin personal registrado</div></div>'; return; }
-
-  el.innerHTML = conHerramientas.map(w=>{
-    const initials = w.name.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase();
-    const libre = w.assigned.length===0;
-    return `<div class="tecnico-card ${libre?'libre':''}">
-      <div class="tecnico-avatar">${initials}</div>
-      <div class="tecnico-info">
-        <div class="tecnico-name">${w.name}</div>
-        <div class="tecnico-dept">${w.department||'Sin departamento'} · ${w.code}</div>
-        ${libre
-          ? '<div class="tecnico-libre">✅ Sin herramientas asignadas</div>'
-          : w.assigned.map(t=>{
-              const lastOut = [...history].find(h=>h.toolId===t.id&&h.type==='out');
-              const days = lastOut ? Math.floor((new Date()-new Date(lastOut.date))/864e5) : 0;
-              const cls  = days>15?'critico':'';
-              const dcls = days>15?'':'dias-badge '+(days>7?'warn':'ok');
-              return `<span class="herramienta-tag ${cls}" onclick="quickReturn('${t.id}')">
-                🔧 ${t.name} <span class="${dcls}" style="${days>15?'background:#c62828;color:#fff;border-radius:10px;padding:2px 6px;font-size:10px;font-weight:700':''}">${days}d</span>
-              </span>`;
-            }).join('')
-        }
-        ${w.phone?`<a href="tel:${w.phone}" class="tecnico-phone">📞 ${w.phone}</a>`:''}
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function renderWeekly(){
-  const chart  = document.getElementById('weekly-chart');
-  const labels = document.getElementById('weekly-labels');
-  const now    = new Date();
-  const days   = ['L','M','X','J','V','S','D'];
-  const counts = [0,0,0,0,0,0,0];
-
-  history.forEach(h=>{
-    const diff = Math.floor((now-new Date(h.date))/864e5);
-    if(diff<7){ const idx=6-diff; if(idx>=0) counts[idx]++; }
-  });
-
-  const max = Math.max(...counts,1);
-  chart.innerHTML = counts.map((v,i)=>{
-    const h = Math.round(v/max*80);
-    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end">
-      <div style="width:100%;background:${v>0?'linear-gradient(180deg,#1e3c72,#2a5298)':'#e8ecf0'};height:${Math.max(h,4)}px;border-radius:4px 4px 0 0;position:relative" title="${v} movimientos">
-        ${v>0?`<span style="position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-size:10px;font-weight:700;color:#1e3c72">${v}</span>`:''}
-      </div>
-    </div>`;
-  }).join('');
-
-  const todayIdx = (new Date().getDay()+6)%7;
-  labels.innerHTML = counts.map((_,i)=>`<div style="flex:1;text-align:center;font-size:11px;color:${i===todayIdx?'#1e3c72':'#aaa'};font-weight:${i===todayIdx?'700':'400'}">${days[i]}</div>`).join('');
-}
-
-function renderTopMaterials(){
-  const el = document.getElementById('top-materials');
-  const cnt = {};
-  history.forEach(h=>{ if(h.type==='out') cnt[h.toolName]=(cnt[h.toolName]||0)+1; });
-  const top = Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,5);
-  if(!top.length){ el.innerHTML='<div style="color:#aaa;font-size:13px;text-align:center;padding:10px">Sin datos de uso aún</div>'; return; }
-  const max = top[0][1];
-  el.innerHTML = top.map(([name,v])=>`
-    <div class="bar-row">
-      <div class="bar-label" title="${name}">${name}</div>
-      <div class="bar-track"><div class="bar-fill" style="width:${v/max*100}%">${v}</div></div>
-    </div>`).join('');
-}
-
-// ════════════════════════════════
-// ESCANEO — MODO NORMAL
-// ════════════════════════════════
-let videoStream=null, scanning=false;
-
-async function startScanning(){
-  try{
-    if(!navigator.mediaDevices?.getUserMedia){ showNotif('Tu navegador no soporta cámara','error'); return; }
-    const vid = document.getElementById('video');
-    videoStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
-    vid.srcObject=videoStream; vid.style.display='block';
-    document.getElementById('startScanBtn').style.display='none';
-    document.getElementById('stopScanBtn').style.display='block';
-    document.getElementById('scanResult').innerHTML='';
-    scanning=true;
-    vid.onloadedmetadata=()=>{ vid.play(); scanLoop(); };
-  }catch(e){ handleCamError(e,'scanResult','startScanBtn'); }
-}
-function stopScanning(){
-  scanning=false;
-  if(videoStream){ videoStream.getTracks().forEach(t=>t.stop()); videoStream=null; }
-  const vid=document.getElementById('video');
-  vid.style.display='none';
-  document.getElementById('startScanBtn').style.display='block';
-  document.getElementById('stopScanBtn').style.display='none';
-}
-function scanLoop(){
-  if(!scanning) return;
-  const vid=document.getElementById('video'), cvs=document.getElementById('canvas');
-  const ctx=cvs.getContext('2d');
-  if(vid.readyState===vid.HAVE_ENOUGH_DATA){
-    cvs.width=vid.videoWidth; cvs.height=vid.videoHeight;
-    ctx.drawImage(vid,0,0);
-    const img=ctx.getImageData(0,0,cvs.width,cvs.height);
-    const code=jsQR(img.data,img.width,img.height);
-    if(code){ playSound('scan'); handleQR(code.data); return; }
-  }
-  requestAnimationFrame(scanLoop);
-}
-
-function handleQR(data){
-  stopScanning();
-  try{
-    const d=JSON.parse(data);
-    if(d.type==='tool'){
-      const tool=tools.find(t=>t.id===d.id);
-      if(tool) openMovementModal(tool);
-      else showNotif('Herramienta no encontrada en el sistema','error');
-    } else if(d.type==='worker'){
-      showNotif(`Técnico: ${d.name} — Usa el Modo Técnico para vincular herramientas`,'success');
-    } else { showNotif('QR no reconocido','error'); }
-  }catch(e){ showNotif('QR inválido o no compatible','error'); }
-}
-
-function handleCamError(e, resultId, btnId){
-  let msg='';
-  if(e.name==='NotAllowedError'||e.name==='PermissionDeniedError')
-    msg='❌ Permiso denegado. Toca el 🔒 de la barra de dirección → Permisos → Cámara → Permitir → Recarga.';
-  else if(e.name==='NotFoundError') msg='❌ No se encontró cámara en el dispositivo.';
-  else if(e.name==='NotReadableError') msg='❌ La cámara está en uso por otra app.';
-  else msg='❌ Error de cámara: '+e.message;
-  showNotif(msg,'error');
-  if(resultId) document.getElementById(resultId).innerHTML=`<div style="color:#e74c3c;font-size:13px;padding:10px;background:#ffebee;border-radius:8px;margin-top:10px">${msg}</div>`;
-  if(btnId) document.getElementById(btnId).style.display='block';
-}
-
-// ════════════════════════════════
-// ESCANEO — MODO TÉCNICO (2 pasos)
-// ════════════════════════════════
-let scanMode='normal', tecnicoStep=1, tecnicoScanned=null;
-let videoStream2=null, scanning2=false;
-
-function setScanMode(mode){
-  scanMode=mode;
-  document.getElementById('mode-normal').style.display   = mode==='normal'  ?'block':'none';
-  document.getElementById('mode-tecnico').style.display  = mode==='tecnico' ?'block':'none';
-  document.getElementById('mode-btn-normal').classList.toggle('active',  mode==='normal');
-  document.getElementById('mode-btn-tecnico').classList.toggle('active', mode==='tecnico');
-  if(mode==='tecnico') resetTecnicoFlow();
-}
-
-function resetTecnicoFlow(){
-  tecnicoStep=1; tecnicoScanned=null;
-  if(scanning2) stopScanning2();
-  document.getElementById('step1-num').className='step-num active';
-  document.getElementById('step2-num').className='step-num';
-  document.getElementById('step1-info').textContent='Pide al técnico su tarjeta QR personal';
-  document.getElementById('step2-info').textContent='Escanea el QR pegado en la herramienta';
-  document.getElementById('scanResult2').innerHTML='';
-  document.getElementById('startScanBtn2').style.display='block';
-  document.getElementById('startScanBtn2').textContent='📷 Paso 1: Escanear QR del Técnico';
-  document.getElementById('stopScanBtn2').style.display='none';
-  document.getElementById('resetFlowBtn').style.display='none';
-}
-
-async function startScanning2(){
-  try{
-    if(!navigator.mediaDevices?.getUserMedia){ showNotif('Tu navegador no soporta cámara','error'); return; }
-    const vid=document.getElementById('video2');
-    videoStream2=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
-    vid.srcObject=videoStream2; vid.style.display='block';
-    document.getElementById('startScanBtn2').style.display='none';
-    document.getElementById('stopScanBtn2').style.display='block';
-    document.getElementById('scanResult2').innerHTML='';
-    scanning2=true;
-    vid.onloadedmetadata=()=>{ vid.play(); scanLoop2(); };
-  }catch(e){ handleCamError(e,'scanResult2','startScanBtn2'); }
-}
-function stopScanning2(){
-  scanning2=false;
-  if(videoStream2){ videoStream2.getTracks().forEach(t=>t.stop()); videoStream2=null; }
-  document.getElementById('video2').style.display='none';
-  document.getElementById('stopScanBtn2').style.display='none';
-}
-function scanLoop2(){
-  if(!scanning2) return;
-  const vid=document.getElementById('video2'), cvs=document.getElementById('canvas2');
-  const ctx=cvs.getContext('2d');
-  if(vid.readyState===vid.HAVE_ENOUGH_DATA){
-    cvs.width=vid.videoWidth; cvs.height=vid.videoHeight;
-    ctx.drawImage(vid,0,0);
-    const img=ctx.getImageData(0,0,cvs.width,cvs.height);
-    const code=jsQR(img.data,img.width,img.height);
-    if(code){ playSound('scan'); handleQR2(code.data); return; }
-  }
-  requestAnimationFrame(scanLoop2);
-}
-
-function handleQR2(data){
-  stopScanning2();
-  try{
-    const d=JSON.parse(data);
-    if(tecnicoStep===1){
-      // Espera QR de técnico
-      if(d.type!=='worker'){ showNotif('⚠️ Escanea el QR del TÉCNICO primero (no de herramienta)','error'); restartStep2Scan(); return; }
-      const w=workers.find(x=>x.id===d.id);
-      if(!w){ showNotif('Técnico no encontrado en el sistema','error'); restartStep2Scan(); return; }
-      tecnicoScanned=w;
-      tecnicoStep=2;
-      // Actualizar UI
-      document.getElementById('step1-num').className='step-num done';
-      document.getElementById('step1-info').textContent=`✅ Técnico: ${w.name}`;
-      document.getElementById('step2-num').className='step-num active';
-      document.getElementById('scanResult2').innerHTML=`
-        <div style="background:#e8f5e9;border:1px solid #a5d6a7;border-radius:10px;padding:12px;margin:10px 0;text-align:left">
-          <div style="font-weight:700;color:#2e7d32">✅ Técnico identificado</div>
-          <div style="font-size:13px;color:#555;margin-top:4px">${w.name} · ${w.code} · ${w.department||'-'}</div>
-        </div>`;
-      document.getElementById('startScanBtn2').style.display='block';
-      document.getElementById('startScanBtn2').textContent='📷 Paso 2: Escanear QR de la Herramienta';
-      document.getElementById('resetFlowBtn').style.display='block';
-      showNotif(`Técnico identificado: ${w.name}`,'success','👷','Ahora escanea la herramienta');
+function handlePin(k){
+  if(k==='C') {currentPin=''; updateDots(); return;}
+  if(k==='OK') {
+    if(currentPin===pin) {
+        document.getElementById('login-overlay').classList.add('hidden');
+        setTimeout(()=>document.getElementById('login-overlay').style.display='none',500);
     } else {
-      // Espera QR de herramienta
-      if(d.type!=='tool'){ showNotif('⚠️ Escanea el QR de la HERRAMIENTA','error'); restartStep2Scan(); return; }
-      const tool=tools.find(t=>t.id===d.id);
-      if(!tool){ showNotif('Herramienta no encontrada en el sistema','error'); restartStep2Scan(); return; }
-      // Vincular directamente
-      registerTecnicoSalida(tool, tecnicoScanned);
+        alert('PIN Incorrecto'); currentPin=''; updateDots();
     }
-  }catch(e){ showNotif('QR inválido','error'); restartStep2Scan(); }
-}
-
-function restartStep2Scan(){
-  document.getElementById('startScanBtn2').style.display='block';
-}
-
-function registerTecnicoSalida(tool, worker){
-  if(tool.status==='out'){
-    const prev=workers.find(w=>w.id===tool.assignedTo);
-    // Si ya la tiene el mismo técnico, preguntar devolución
-    if(tool.assignedTo===worker.id){
-      document.getElementById('scanResult2').innerHTML=`
-        <div style="background:#fff3e0;border:1px solid #ffcc80;border-radius:10px;padding:12px;margin:10px 0">
-          <div style="font-weight:700;color:#e65100">⚠️ ${worker.name} ya tiene esta herramienta</div>
-          <div style="font-size:13px;color:#555;margin-top:4px">${tool.name}</div>
-          <div style="display:flex;gap:8px;margin-top:10px">
-            <button class="btn btn-success" style="flex:1" onclick="doCheckin('${tool.id}');resetTecnicoFlow()">📥 Registrar Devolución</button>
-            <button class="btn btn-ghost" style="flex:1" onclick="resetTecnicoFlow()">Cancelar</button>
-          </div>
-        </div>`;
-      return;
-    }
-    // La tiene otro técnico
-    document.getElementById('scanResult2').innerHTML=`
-      <div style="background:#ffebee;border:1px solid #ef9a9a;border-radius:10px;padding:12px;margin:10px 0">
-        <div style="font-weight:700;color:#c62828">❌ Herramienta en uso</div>
-        <div style="font-size:13px;color:#555;margin-top:4px">${tool.name} está asignada a: <strong>${prev?prev.name:'Desconocido'}</strong></div>
-        <div style="display:flex;gap:8px;margin-top:10px">
-          <button class="btn btn-danger" style="flex:1" onclick="doForcedTransfer('${tool.id}','${worker.id}');resetTecnicoFlow()">🔄 Transferir a ${worker.name}</button>
-          <button class="btn btn-ghost" style="flex:1" onclick="resetTecnicoFlow()">Cancelar</button>
-        </div>
-      </div>`;
     return;
   }
-
-  // Herramienta disponible → asignar directamente
-  doCheckout(tool.id, worker.id);
-  document.getElementById('scanResult2').innerHTML=`
-    <div style="background:#e8f5e9;border:1px solid #a5d6a7;border-radius:10px;padding:14px;margin:10px 0;text-align:center">
-      <div style="font-size:36px;margin-bottom:8px">✅</div>
-      <div style="font-weight:700;color:#2e7d32;font-size:16px">¡Herramienta Asignada!</div>
-      <div style="font-size:13px;color:#555;margin-top:6px">
-        <strong>${tool.name}</strong><br>→ <strong>${worker.name}</strong>
-      </div>
-      <button class="btn btn-primary" style="margin-top:14px;width:100%" onclick="resetTecnicoFlow()">✅ Nueva Operación</button>
-    </div>`;
-  showNotif(`${tool.name} → ${worker.name}`,'success','✅','Asignación registrada');
+  if(currentPin.length<4) {currentPin+=k; updateDots();}
+  if(currentPin.length===4 && k!=='OK' && currentPin===pin) handlePin('OK');
 }
+function updateDots(){document.querySelectorAll('.pin-dot').forEach((d,i)=>d.classList.toggle('active',i<currentPin.length));}
+function changePin(){const n=prompt("Nuevo PIN (4 dígitos):"); if(n&&n.length===4){pin=n;localStorage.setItem('isivolt_pin',n);alert("PIN Cambiado");}}
 
-function doForcedTransfer(toolId, workerId){
-  doCheckin(toolId);
-  doCheckout(toolId, workerId);
-  playSound('transfer');
-  showNotif('🔄 Herramienta transferida correctamente','info','🔄','Reasignación completada');
+/* ── 2. NAVEGACIÓN ── */
+function switchTab(t){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+t).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  if(t==='items') renderList();
 }
+function renderSettings(){switchTab('settings');}
 
-// ════════════════════════════════
-// MOVIMIENTOS (Normal)
-// ════════════════════════════════
-function openMovementModal(tool){
-  const w = tool.assignedTo ? workers.find(x=>x.id===tool.assignedTo) : null;
-  document.getElementById('mv-title').textContent = tool.status==='available' ? '📤 Registrar Salida' : '📥 Registrar Entrada';
-  document.getElementById('mv-content').innerHTML = tool.status==='available' ? `
-    <div class="tool-card" style="margin-bottom:14px">
-      <div class="tool-name">${tool.name}</div>
-      <div class="tool-meta"><span>📝 ${tool.code}</span>${tool.location?`<span>📍 ${tool.location}</span>`:''}</div>
-    </div>
-    <div class="form-group">
-      <label>Asignar a técnico *</label>
-      <select id="sel-worker">
-        <option value="">-- Seleccionar técnico --</option>
-        ${workers.map(w=>`<option value="${w.id}">${w.name} (${w.code})</option>`).join('')}
-      </select>
-    </div>
-    <div style="display:flex;gap:8px">
-      <button class="btn btn-ghost" style="flex:1" onclick="closeModal('modal-movement')">Cancelar</button>
-      <button class="btn btn-danger" style="flex:1" onclick="doCheckoutFromModal('${tool.id}')">📤 Confirmar Salida</button>
-    </div>` : `
-    <div class="tool-card out" style="margin-bottom:14px">
-      <div class="tool-name">${tool.name}</div>
-      <div class="tool-meta"><span>📝 ${tool.code}</span></div>
-      <div style="font-size:13px;color:#666;margin-top:4px">Asignado a: <strong>${w?w.name:'Desconocido'}</strong></div>
-    </div>
-    <div style="display:flex;gap:8px">
-      <button class="btn btn-ghost" style="flex:1" onclick="closeModal('modal-movement')">Cancelar</button>
-      <button class="btn btn-success" style="flex:1" onclick="doCheckin('${tool.id}');closeModal('modal-movement')">📥 Confirmar Entrada</button>
-    </div>`;
-  document.getElementById('modal-movement').classList.add('active');
-}
-
-function doCheckoutFromModal(toolId){
-  const wId=document.getElementById('sel-worker').value;
-  if(!wId){ showNotif('Selecciona un técnico','error'); return; }
-  doCheckout(toolId,wId);
-  closeModal('modal-movement');
-}
-
-function doCheckout(toolId, workerId){
-  const tool=tools.find(t=>t.id===toolId);
-  const worker=workers.find(w=>w.id===workerId);
-  if(!tool||!worker) return;
-  tool.status='out'; tool.assignedTo=workerId;
-  history.unshift({id:Date.now().toString(),date:new Date().toISOString(),type:'out',toolId,toolName:tool.name,workerId,workerName:worker.name});
-  save(); renderDashboard(); renderTools();
-  playSound('checkout');
-  showNotif(`📤 ${tool.name} → ${worker.name}`,'success','📤','Herramienta prestada');
-}
-
-function doCheckin(toolId){
-  const tool=tools.find(t=>t.id===toolId);
-  if(!tool) return;
-  const worker=workers.find(w=>w.id===tool.assignedTo);
-  history.unshift({id:Date.now().toString(),date:new Date().toISOString(),type:'in',toolId,toolName:tool.name,workerId:tool.assignedTo,workerName:worker?worker.name:'-'});
-  tool.status='available'; tool.assignedTo=null;
-  save(); renderDashboard(); renderTools();
-  playSound('checkin');
-  showNotif(`📥 ${tool.name} devuelta`,'success','📥','Herramienta disponible de nuevo');
-}
-
-function quickReturn(toolId){
-  const tool=tools.find(t=>t.id===toolId);
-  if(!tool) return;
-  const w=tool.assignedTo?workers.find(x=>x.id===tool.assignedTo):null;
-  document.getElementById('return-title').textContent='📥 Devolver: '+tool.name;
-  document.getElementById('return-content').innerHTML=`
-    <div class="tool-card out" style="margin-bottom:14px">
-      <div class="tool-name">${tool.name}</div>
-      <div class="tool-meta"><span>📝 ${tool.code}</span>${tool.location?`<span>📍 ${tool.location}</span>`:''}</div>
-      <div style="font-size:13px;color:#666;margin-top:4px">Asignado a: <strong>${w?w.name:'Desconocido'}</strong></div>
-    </div>
-    <div style="display:flex;gap:8px">
-      <button class="btn btn-ghost" style="flex:1" onclick="closeModal('modal-return')">Cancelar</button>
-      <button class="btn btn-success" style="flex:1" onclick="doCheckin('${toolId}');closeModal('modal-return')">📥 Confirmar Devolución</button>
-    </div>`;
-  document.getElementById('modal-return').classList.add('active');
-}
-
-// ════════════════════════════════
-// MATERIALES
-// ════════════════════════════════
-function renderTools(){
-  const q=(document.getElementById('search-tools')?.value||'').toLowerCase();
-  const el=document.getElementById('tools-list');
-  const list=tools.filter(t=>!q||t.name.toLowerCase().includes(q)||t.code.toLowerCase().includes(q)||(t.category||'').toLowerCase().includes(q)||(t.location||'').toLowerCase().includes(q));
-  if(!list.length){ el.innerHTML='<div class="empty"><div class="empty-icon">📦</div><div>Sin materiales</div></div>'; return; }
-  el.innerHTML=list.map(t=>{
-    const w=t.assignedTo?workers.find(x=>x.id===t.assignedTo):null;
-    const maint = checkMaintenance(t);
-    return `<div class="tool-card ${t.status==='out'?'out':''}">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start">
-        <div>
-          <div class="tool-name">
-            ${t.name}
-            ${maint?`<span class="maint-badge ${maint.status}">🔧 ${maint.text}</span>`:''}
-          </div>
-        </div>
-        <span class="tag ${t.status==='available'?'tag-avail':'tag-out'}">${t.status==='available'?'✅ Libre':'🔧 En uso'}</span>
-      </div>
-      <div class="tool-meta">
-        <span>📝 ${t.code}</span>
-        ${t.category?`<span class="tag tag-cat">${t.category}</span>`:''}
-        ${t.location?`<span>📍 ${t.location}</span>`:''}
-      </div>
-      ${w?`<div style="font-size:13px;color:#e74c3c;font-weight:600;margin-bottom:6px">👷 ${w.name}</div>`:''}
-      ${t.photo?`<img src="${t.photo}" class="photo-thumb" onclick="showImageModal('${t.photo}')" alt="Foto de ${t.name}">`:''}
-      <div class="action-row">
-        <button class="btn btn-ghost btn-sm" onclick="showQR('tool','${t.id}')">📱 QR</button>
-        ${t.status==='available'
-          ?`<button class="btn btn-danger btn-sm" onclick="openMovementModal(tools.find(x=>x.id==='${t.id}'))">📤 Prestar</button>`
-          :`<button class="btn btn-success btn-sm" onclick="doCheckin('${t.id}')">📥 Devolver</button>`}
-        ${maint && maint.status==='due'?`<button class="btn btn-ghost btn-sm" onclick="registerMaintenance('${t.id}')">🔧 Mant.</button>`:''}
-        <button class="btn btn-ghost btn-sm" onclick="deleteTool('${t.id}')">🗑️</button>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function openAddTool(){ 
-  currentPhoto = null;
-  document.getElementById('photoPreview').style.display='none';
-  document.getElementById('photoPlaceholder').style.display='block';
-  document.getElementById('photoCapture').classList.remove('has-photo');
-  document.getElementById('modal-tool').classList.add('active'); 
-}
-
-function saveTool(){
-  const name=document.getElementById('t-name').value.trim();
-  const code=document.getElementById('t-code').value.trim();
-  if(!name||!code){ showNotif('Nombre y Código son obligatorios','error'); return; }
-  
-  const maint = parseInt(document.getElementById('t-maint').value) || null;
-  
-  const newTool = {
-    id: 't'+Date.now(),
-    name,
-    code,
-    category: document.getElementById('t-cat').value,
-    location: document.getElementById('t-loc').value.trim(),
-    description: document.getElementById('t-desc').value.trim(),
-    status: 'available',
-    assignedTo: null,
-    photo: currentPhoto,
-    maintenanceMonths: maint,
-    lastMaintenance: maint ? Date.now().toString() : null,
-    maintenanceHistory: []
+/* ── 3. GESTIÓN DE ITEMS ── */
+function saveItem(){
+  const id = document.getElementById('item-id').value;
+  const item = {
+    id: id ? parseFloat(id) : Date.now(),
+    name: document.getElementById('item-name').value,
+    cat: document.getElementById('item-cat').value,
+    stock: parseInt(document.getElementById('item-stock').value)||0,
+    min: parseInt(document.getElementById('item-min').value)||0,
+    price: parseFloat(document.getElementById('item-price').value)||0,
+    assign: document.getElementById('item-assign').value,
+    img: document.getElementById('photo-input').dataset.base64
   };
-  
-  tools.push(newTool);
-  save(); closeModal('modal-tool'); renderTools(); renderDashboard();
-  
-  ['t-name','t-code','t-loc','t-desc','t-maint'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('t-cat').value='';
-  currentPhoto = null;
-  
-  playSound('save');
-  showNotif('Material añadido al inventario','success','📦','Disponible para asignar');
-}
-function deleteTool(id){
-  if(!confirm('¿Eliminar este material?')) return;
-  tools=tools.filter(t=>t.id!==id); save(); renderTools(); renderDashboard();
+
+  if(!item.name) return alert("El nombre es obligatorio");
+
+  if(id) {
+    const idx = inventory.findIndex(i=>i.id==id);
+    if(idx > -1) {
+      if(!item.img) item.img = inventory[idx].img; // Mantener foto anterior si no se cambia
+      inventory[idx] = item;
+    }
+  } else inventory.push(item);
+
+  localStorage.setItem(DB_NAME, JSON.stringify(inventory));
+  closeModal(); updateDashboard(); renderList();
 }
 
-// ════════════════════════════════
-// PERSONAL
-// ════════════════════════════════
-function renderWorkers(){
-  const q=(document.getElementById('search-workers')?.value||'').toLowerCase();
-  const el=document.getElementById('workers-list');
-  const list=workers.filter(w=>!q||w.name.toLowerCase().includes(q)||w.code.toLowerCase().includes(q)||(w.department||'').toLowerCase().includes(q));
-  if(!list.length){ el.innerHTML='<div class="empty"><div class="empty-icon">👷</div><div>Sin personal</div></div>'; return; }
-  el.innerHTML=list.map(w=>{
-    const assigned=tools.filter(t=>t.assignedTo===w.id);
-    const initials=w.name.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase();
-    return `<div class="worker-card">
-      <div class="worker-avatar">${initials}</div>
-      <div style="flex:1">
-        <div style="font-weight:700;font-size:15px">${w.name}</div>
-        <div style="font-size:12px;color:#888;margin-bottom:6px">${w.code} · ${w.department||'-'}</div>
-        ${w.phone?`<a href="tel:${w.phone}" style="color:#1e3c72;font-size:12px;font-weight:600">📞 ${w.phone}</a><br>`:''}
-        ${w.email?`<div style="font-size:12px;color:#888">${w.email}</div>`:''}
-        ${assigned.length?`<div style="margin-top:8px">${assigned.map(t=>`<span class="tag tag-out" style="margin:2px">${t.name}</span>`).join('')}</div>`:'<div style="font-size:12px;color:#27ae60;margin-top:6px">✅ Sin herramientas</div>'}
-        <div class="action-row" style="margin-top:10px">
-          <button class="btn btn-ghost btn-sm" onclick="showQR('worker','${w.id}')">📱 QR Personal</button>
-          <button class="btn btn-ghost btn-sm" onclick="deleteWorker('${w.id}')">🗑️</button>
+function deleteItem(){
+  if(confirm('¿Eliminar este material?')) {
+    const id = document.getElementById('item-id').value;
+    inventory = inventory.filter(i=>i.id!=id);
+    localStorage.setItem(DB_NAME, JSON.stringify(inventory));
+    closeModal(); updateDashboard(); renderList();
+  }
+}
+
+function openModal(id){
+  document.getElementById('item-modal').classList.add('open');
+  // Reset fields
+  document.getElementById('photo-input').value = '';
+  delete document.getElementById('photo-input').dataset.base64;
+  
+  if(id) {
+    const i = inventory.find(x=>x.id==id);
+    document.getElementById('item-id').value=i.id;
+    document.getElementById('modal-title').innerText="Editar Material";
+    document.getElementById('item-name').value=i.name;
+    document.getElementById('item-cat').value=i.cat;
+    document.getElementById('item-stock').value=i.stock;
+    document.getElementById('item-min').value=i.min;
+    document.getElementById('item-price').value=i.price;
+    document.getElementById('item-assign').value=i.assign;
+    if(i.img) {
+      document.getElementById('preview-img').src=i.img;
+      document.getElementById('preview-img').style.display='block';
+      document.getElementById('preview-text').style.display='none';
+    } else {
+      document.getElementById('preview-img').style.display='none';
+      document.getElementById('preview-text').style.display='block';
+    }
+  } else {
+    document.getElementById('item-id').value='';
+    document.getElementById('modal-title').innerText="Nuevo Material";
+    document.getElementById('item-name').value='';
+    document.getElementById('item-stock').value='';
+    document.getElementById('item-min').value='';
+    document.getElementById('item-price').value='';
+    document.getElementById('item-assign').value='';
+    document.getElementById('preview-img').style.display='none';
+    document.getElementById('preview-text').style.display='block';
+  }
+}
+function closeModal(){document.getElementById('item-modal').classList.remove('open');}
+
+/* ── 4. RENDERIZADO DE LISTA Y DASHBOARD ── */
+function filterCat(c, btn){
+  currentFilter=c; 
+  document.querySelectorAll('.cat-pill').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  renderList();
+}
+
+function renderList(){
+  const list = document.getElementById('inventory-list'); 
+  list.innerHTML='';
+  const term = document.getElementById('search-input').value.toLowerCase();
+  
+  const filtered = inventory.filter(i => {
+    const matchesSearch = i.name.toLowerCase().includes(term) || (i.assign && i.assign.toLowerCase().includes(term));
+    const matchesCat = currentFilter === 'all' || i.cat === currentFilter;
+    return matchesSearch && matchesCat;
+  });
+
+  if(filtered.length === 0) list.innerHTML = '<div style="padding:20px;text-align:center;color:#999">No hay resultados</div>';
+
+  filtered.forEach(i=>{
+    const div = document.createElement('div'); div.className='item-card';
+    div.onclick=()=>openModal(i.id);
+    div.innerHTML=`
+      <div class="item-img-box">${i.img?`<img src="${i.img}" class="item-img">`:'📦'}</div>
+      <div class="item-info">
+        <div class="item-name">${i.name}</div>
+        <div style="font-size:11px;color:#666">
+          ${i.cat} ${i.assign?`<span class="badge-loc">${i.assign}</span>`:''}
         </div>
       </div>
-    </div>`;
-  }).join('');
-}
-
-function openAddWorker(){ document.getElementById('modal-worker').classList.add('active'); }
-function saveWorker(){
-  const name=document.getElementById('w-name').value.trim();
-  const code=document.getElementById('w-code').value.trim();
-  if(!name||!code){ showNotif('Nombre y Código son obligatorios','error'); return; }
-  workers.push({id:'w'+Date.now(),name,code,department:document.getElementById('w-dept').value,phone:document.getElementById('w-phone').value.trim(),email:document.getElementById('w-email').value.trim()});
-  save(); closeModal('modal-worker'); renderWorkers(); renderDashboard();
-  ['w-name','w-code','w-phone','w-email'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('w-dept').value='';
-  playSound('save');
-  showNotif('Personal registrado','success','👷','Ya puede usar el sistema');
-}
-function deleteWorker(id){
-  if(!confirm('¿Eliminar este trabajador?')) return;
-  workers=workers.filter(w=>w.id!==id); save(); renderWorkers(); renderDashboard();
-}
-
-// ════════════════════════════════
-// HISTORIAL
-// ════════════════════════════════
-function renderHistory(){
-  const type   = document.getElementById('filter-type').value;
-  const worker = document.getElementById('filter-worker').value;
-  const from   = document.getElementById('filter-from').value;
-  const to     = document.getElementById('filter-to').value;
-
-  // Poblar select de personal
-  const sel=document.getElementById('filter-worker');
-  const cur=sel.value;
-  sel.innerHTML='<option value="">Todo el personal</option>'+workers.map(w=>`<option value="${w.id}" ${cur===w.id?'selected':''}>${w.name}</option>`).join('');
-
-  let list=history;
-  if(type)   list=list.filter(h=>h.type===type);
-  if(worker) list=list.filter(h=>h.workerId===worker);
-  if(from)   list=list.filter(h=>new Date(h.date)>=new Date(from));
-  if(to)     list=list.filter(h=>new Date(h.date)<=new Date(to+'T23:59:59'));
-
-  // Stats
-  const outs=list.filter(h=>h.type==='out').length;
-  const ins =list.filter(h=>h.type==='in').length;
-  document.getElementById('history-stats').innerHTML=`
-    <div style="display:flex;gap:16px;flex-wrap:wrap">
-      <div><span style="font-size:22px;font-weight:800;color:#1e3c72">${list.length}</span><div style="font-size:11px;color:#888">Total</div></div>
-      <div><span style="font-size:22px;font-weight:800;color:#e74c3c">${outs}</span><div style="font-size:11px;color:#888">Salidas</div></div>
-      <div><span style="font-size:22px;font-weight:800;color:#27ae60">${ins}</span><div style="font-size:11px;color:#888">Entradas</div></div>
-    </div>`;
-
-  const el=document.getElementById('history-list');
-  if(!list.length){ el.innerHTML='<div class="empty"><div class="empty-icon">📋</div><div>Sin registros</div></div>'; return; }
-  el.innerHTML='<div class="card">'+list.slice(0,100).map(h=>{
-    const d=new Date(h.date);
-    return `<div class="hist-item">
-      <div class="hist-dot ${h.type}">${h.type==='out'?'📤':'📥'}</div>
-      <div style="flex:1">
-        <div style="font-weight:600;font-size:14px">${h.toolName}</div>
-        <div style="font-size:12px;color:#888">${h.workerName}</div>
-        <div style="font-size:11px;color:#bbb;margin-top:2px">${d.toLocaleDateString('es-ES')} · ${d.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})}</div>
-      </div>
-      <span style="font-size:11px;font-weight:700;color:${h.type==='out'?'#e74c3c':'#27ae60'};white-space:nowrap">${h.type==='out'?'SALIDA':'ENTRADA'}</span>
-    </div>`;
-  }).join('')+'</div>';
-}
-
-// ════════════════════════════════
-// CÓDIGOS QR
-// ════════════════════════════════
-let _qrItem=null, _qrType=null;
-
-function showQR(type, id){
-  const item = type==='tool' ? tools.find(t=>t.id===id) : workers.find(w=>w.id===id);
-  if(!item){ showNotif('Elemento no encontrado','error'); return; }
-  _qrItem=item; _qrType=type;
-
-  document.getElementById('qr-item-info').innerHTML=`
-    <div style="font-weight:700;font-size:17px;color:#1e3c72">${item.name}</div>
-    <div style="font-size:13px;color:#888;margin-top:3px">Código: ${item.code}</div>`;
-
-  const wrapper=document.getElementById('qr-wrapper');
-  wrapper.innerHTML='<div style="color:#aaa;font-size:14px">⏳ Generando QR...</div>';
-  document.getElementById('modal-qr').classList.add('active');
-
-  setTimeout(()=>{
-    const cvs=document.createElement('canvas');
-    cvs.id='qr-canvas';
-    cvs.style.borderRadius='10px';
-    wrapper.innerHTML=''; wrapper.appendChild(cvs);
-    const data={type, id:item.id, name:item.name, code:item.code};
-    QRCode.toCanvas(cvs, JSON.stringify(data), {
-      width:260, margin:2,
-      color:{dark:'#1e3c72', light:'#ffffff'},
-      errorCorrectionLevel:'M'
-    }, err=>{
-      if(err){ wrapper.innerHTML=`<div style="color:#e74c3c">❌ Error al generar QR<br><small>${err.message}</small><br><br><button class="btn btn-primary" onclick="showQR('${type}','${id}')">🔄 Reintentar</button></div>`; }
-    });
-  },120);
-}
-
-function downloadQR(){
-  const cvs=document.getElementById('qr-canvas');
-  if(!cvs){ showNotif('QR aún no generado, espera un momento','error'); return; }
-  const a=document.createElement('a');
-  a.download=`QR-${_qrItem?.name||'item'}.png`;
-  a.href=cvs.toDataURL(); a.click();
-  showNotif('✅ QR descargado','success');
-}
-
-function printQR(){
-  const cvs=document.getElementById('qr-canvas');
-  if(!cvs){ showNotif('QR aún no generado','error'); return; }
-  const w=window.open('','_blank');
-  w.document.write(`<!DOCTYPE html><html><head><title>QR ${_qrItem?.name}</title>
-    <style>body{font-family:sans-serif;text-align:center;padding:40px} h2{color:#1e3c72} @media print{button{display:none}}</style></head>
-    <body><h2>⚡ IsivoltPro</h2><img src="${cvs.toDataURL()}" width="250" style="border-radius:8px;border:2px solid #1e3c72"><h2>${_qrItem?.name}</h2>
-    <p style="color:#666">Código: ${_qrItem?.code}</p><p style="font-size:12px;color:#aaa">Escanea para registrar entrada/salida</p>
-    <br><button onclick="window.print()" style="padding:10px 20px;background:#1e3c72;color:#fff;border:none;border-radius:8px;font-size:15px;cursor:pointer">🖨️ Imprimir</button></body></html>`);
-  w.document.close(); w.focus();
-}
-
-// ════════════════════════════════
-// EXPORTAR
-// ════════════════════════════════
-function exportExcel(){
-  if(!history.length){ showNotif('No hay datos para exportar','error'); return; }
-  if(typeof XLSX==='undefined'){
-    showNotif('Cargando Excel...','success');
-    const s=document.createElement('script');
-    s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
-    s.onload=exportExcel; document.head.appendChild(s); return;
-  }
-  const now=new Date(), fh=now.toLocaleDateString('es-ES'), hh=now.toLocaleTimeString('es-ES');
-  const dias=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
-  const inUse=tools.filter(t=>t.status==='out').length;
-  const avail=tools.filter(t=>t.status==='available').length;
-  const wb=XLSX.utils.book_new();
-
-  // Resumen
-  const matU={};history.forEach(h=>{if(h.type==='out')matU[h.toolName]=(matU[h.toolName]||0)+1;});
-  const topM=Object.entries(matU).sort((a,b)=>b[1]-a[1]).slice(0,5);
-  const persU={};history.forEach(h=>{persU[h.workerName]=(persU[h.workerName]||0)+1;});
-  const topP=Object.entries(persU).sort((a,b)=>b[1]-a[1]).slice(0,5);
-  const res=[['ISIVOLTPRO - REPORTE EJECUTIVO'],[`Generado: ${fh} ${hh}`],[''],
-    ['METRICAS GENERALES','Valor'],['Total materiales',tools.length],['Disponibles',avail],['En uso',inUse],
-    ['% Uso',tools.length>0?((inUse/tools.length*100).toFixed(1)+'%'):'0%'],['Personal registrado',workers.length],
-    ['Total movimientos',history.length],['Total salidas',history.filter(h=>h.type==='out').length],['Total entradas',history.filter(h=>h.type==='in').length],
-    [''],['TOP 5 MATERIALES MAS USADOS','Salidas'],...topM,[''],['TOP 5 PERSONAL MAS ACTIVO','Movimientos'],...topP];
-
-  // Historial
-  const hist=[['HISTORIAL DE MOVIMIENTOS'],[`Total: ${history.length}`],[''],
-    ['N','Fecha','Hora','Dia Semana','Tipo','Material','Cod Material','Ubicacion','Tecnico','Cod Empleado','Departamento']];
-  history.forEach((h,i)=>{
-    const d=new Date(h.date),w=workers.find(x=>x.id===h.workerId),t=tools.find(x=>x.id===h.toolId);
-    hist.push([i+1,d.toLocaleDateString('es-ES'),d.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}),
-      dias[d.getDay()],h.type==='out'?'SALIDA':'ENTRADA',h.toolName||'-',t?t.code:'-',t?t.location||'-':'-',
-      h.workerName||'-',w?w.code:'-',w?w.department||'-':'-']);
-  });
-
-  // Inventario
-  const inv=[['INVENTARIO ACTUAL'],[`Fecha: ${fh}`],[''],
-    ['N','Material','Codigo','Categoria','Ubicacion','Descripcion','Estado','Asignado A','Telefono','Departamento']];
-  tools.forEach((t,i)=>{
-    const w=t.assignedTo?workers.find(x=>x.id===t.assignedTo):null;
-    inv.push([i+1,t.name,t.code,t.category||'-',t.location||'-',t.description||'-',
-      t.status==='available'?'DISPONIBLE':'EN USO',w?w.name:'-',w?w.phone||'-':'-',w?w.department||'-':'-']);
-  });
-
-  // Personal
-  const pers=[['LISTADO DE PERSONAL'],[`Fecha: ${fh}`],[''],
-    ['N','Nombre','Codigo','Departamento','Telefono','Email','Materiales Asignados','Lista']];
-  workers.forEach((w,i)=>{
-    const asgn=tools.filter(t=>t.assignedTo===w.id);
-    pers.push([i+1,w.name,w.code,w.department||'-',w.phone||'-',w.email||'-',asgn.length,asgn.map(t=>t.name).join(' | ')||'Ninguno']);
-  });
-
-  // En uso ahora
-  const enUso=[['MATERIALES EN USO AHORA'],[`Fecha: ${fh}  |  En uso: ${inUse}`],[''],
-    ['N','Material','Codigo','Categoria','Ubicacion','Tecnico','Telefono','Departamento','Fecha Salida','Dias En Uso']];
-  let c=1;
-  tools.filter(t=>t.status==='out').forEach(t=>{
-    const w=t.assignedTo?workers.find(x=>x.id===t.assignedTo):null;
-    const last=[...history].find(h=>h.toolId===t.id&&h.type==='out');
-    let fs='-',du='-';
-    if(last){const dl=new Date(last.date);fs=dl.toLocaleDateString('es-ES');du=Math.floor((now-dl)/864e5);}
-    enUso.push([c++,t.name,t.code,t.category||'-',t.location||'-',w?w.name:'-',w?w.phone||'-':'-',w?w.department||'-':'-',fs,du]);
-  });
-  if(c===1) enUso.push(['No hay materiales en uso']);
-
-  const add=(data,widths,name)=>{
-    const ws=XLSX.utils.aoa_to_sheet(data);
-    ws['!cols']=widths.map(w=>({wch:w}));
-    XLSX.utils.book_append_sheet(wb,ws,name);
-  };
-  add(res,    [35,18],                           'Resumen');
-  add(hist,   [4,12,8,12,10,24,13,18,20,13,14], 'Historial');
-  add(inv,    [4,24,13,16,18,20,11,20,13,14],   'Inventario');
-  add(pers,   [4,22,13,14,13,26,10,40],         'Personal');
-  add(enUso,  [4,24,13,14,18,20,13,14,15,10],   'En Uso Ahora');
-
-  XLSX.writeFile(wb,`IsivoltPro_${fh.replace(/\//g,'-')}.xlsx`);
-  playSound('save');
-  showNotif(`Excel descargado: ${history.length} movimientos`,'success','📊','5 hojas · Listo para abrir');
-}
-
-function exportCSV(){
-  const BOM='\uFEFF';
-  let csv=BOM+'N;Fecha;Hora;Tipo;Material;Codigo;Tecnico;Empleado;Departamento\n';
-  history.forEach((h,i)=>{
-    const d=new Date(h.date),w=workers.find(x=>x.id===h.workerId),t=tools.find(x=>x.id===h.toolId);
-    csv+=[i+1,d.toLocaleDateString('es-ES'),d.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}),
-      h.type==='out'?'SALIDA':'ENTRADA',`"${h.toolName||''}"`,t?t.code:'',`"${h.workerName||''}"`,
-      w?w.code:'',w?w.department||'':''
-    ].join(';')+'\n';
-  });
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));
-  a.download=`IsivoltPro_${new Date().toLocaleDateString('es-ES').replace(/\//g,'-')}.csv`;
-  a.click(); showNotif('✅ CSV descargado','success');
-}
-
-// ════════════════════════════════
-// SISTEMA DE SONIDOS (Web Audio API)
-// ════════════════════════════════
-let audioCtx = null;
-let soundEnabled = localStorage.getItem('iv_sound') !== 'false';
-
-function getAudioCtx(){
-  if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  return audioCtx;
-}
-
-function playSound(type){
-  if(!soundEnabled) return;
-  try{
-    const ctx = getAudioCtx();
-    if(ctx.state === 'suspended') ctx.resume();
-
-    const sounds = {
-      // Salida: tono descendente doble (bip-bip grave)
-      checkout: ()=>{
-        const t = ctx.currentTime;
-        [0, 0.18].forEach((delay, i)=>{
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.connect(gain); gain.connect(ctx.destination);
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(880, t+delay);
-          osc.frequency.exponentialRampToValueAtTime(440, t+delay+0.15);
-          gain.gain.setValueAtTime(0.4, t+delay);
-          gain.gain.exponentialRampToValueAtTime(0.001, t+delay+0.18);
-          osc.start(t+delay); osc.stop(t+delay+0.2);
-        });
-      },
-
-      // Entrada: tono ascendente doble (bip-bip agudo — confirmar)
-      checkin: ()=>{
-        const t = ctx.currentTime;
-        [0, 0.15].forEach((delay)=>{
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.connect(gain); gain.connect(ctx.destination);
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(440, t+delay);
-          osc.frequency.exponentialRampToValueAtTime(880, t+delay+0.12);
-          gain.gain.setValueAtTime(0.35, t+delay);
-          gain.gain.exponentialRampToValueAtTime(0.001, t+delay+0.15);
-          osc.start(t+delay); osc.stop(t+delay+0.18);
-        });
-      },
-
-      // QR escaneado: beep corto tipo pistola lectora
-      scan: ()=>{
-        const t = ctx.currentTime;
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain); gain.connect(ctx.destination);
-        osc.type = 'square';
-        osc.frequency.setValueAtTime(1200, t);
-        osc.frequency.exponentialRampToValueAtTime(900, t+0.08);
-        gain.gain.setValueAtTime(0.2, t);
-        gain.gain.exponentialRampToValueAtTime(0.001, t+0.1);
-        osc.start(t); osc.stop(t+0.12);
-      },
-
-      // Error: tono grave de error
-      error: ()=>{
-        const t = ctx.currentTime;
-        [0, 0.22].forEach(delay=>{
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.connect(gain); gain.connect(ctx.destination);
-          osc.type = 'sawtooth';
-          osc.frequency.setValueAtTime(180, t+delay);
-          gain.gain.setValueAtTime(0.3, t+delay);
-          gain.gain.exponentialRampToValueAtTime(0.001, t+delay+0.2);
-          osc.start(t+delay); osc.stop(t+delay+0.22);
-        });
-      },
-
-      // Alerta: 3 bips urgentes
-      alert: ()=>{
-        const t = ctx.currentTime;
-        [0, 0.2, 0.4].forEach(delay=>{
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.connect(gain); gain.connect(ctx.destination);
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(660, t+delay);
-          gain.gain.setValueAtTime(0.35, t+delay);
-          gain.gain.exponentialRampToValueAtTime(0.001, t+delay+0.15);
-          osc.start(t+delay); osc.stop(t+delay+0.18);
-        });
-      },
-
-      // Bienvenida: melodía de inicio (do-mi-sol)
-      welcome: ()=>{
-        const t = ctx.currentTime;
-        const notes = [523, 659, 784, 1046]; // C5 E5 G5 C6
-        notes.forEach((freq, i)=>{
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.connect(gain); gain.connect(ctx.destination);
-          osc.type = 'sine';
-          osc.frequency.value = freq;
-          gain.gain.setValueAtTime(0, t + i*0.12);
-          gain.gain.linearRampToValueAtTime(0.3, t + i*0.12 + 0.04);
-          gain.gain.exponentialRampToValueAtTime(0.001, t + i*0.12 + 0.22);
-          osc.start(t + i*0.12);
-          osc.stop(t + i*0.12 + 0.25);
-        });
-      },
-
-      // Guardar/éxito: ding agradable
-      save: ()=>{
-        const t = ctx.currentTime;
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain); gain.connect(ctx.destination);
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(784, t);
-        osc.frequency.exponentialRampToValueAtTime(1046, t+0.1);
-        gain.gain.setValueAtTime(0.3, t);
-        gain.gain.exponentialRampToValueAtTime(0.001, t+0.3);
-        osc.start(t); osc.stop(t+0.35);
-      },
-
-      // Transferencia: 2 notas distintas
-      transfer: ()=>{
-        const t = ctx.currentTime;
-        [[523, 0],[784, 0.15]].forEach(([freq, delay])=>{
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.connect(gain); gain.connect(ctx.destination);
-          osc.type = 'sine'; osc.frequency.value = freq;
-          gain.gain.setValueAtTime(0.3, t+delay);
-          gain.gain.exponentialRampToValueAtTime(0.001, t+delay+0.15);
-          osc.start(t+delay); osc.stop(t+delay+0.18);
-        });
-      }
-    };
-
-    if(sounds[type]) sounds[type]();
-  }catch(e){ console.warn('Audio error:', e); }
-}
-
-function toggleSound(){
-  soundEnabled = !soundEnabled;
-  localStorage.setItem('iv_sound', soundEnabled);
-  const btn = document.getElementById('soundBtn');
-  btn.textContent = soundEnabled ? '🔊' : '🔇';
-  btn.classList.toggle('muted', !soundEnabled);
-  if(soundEnabled){ playSound('save'); showNotif('Sonido activado', 'info', '🔊'); }
-  else { showNotif('Sonido desactivado', 'info', '🔇'); }
-}
-
-// ════════════════════════════════
-// PANTALLA DE BIENVENIDA
-// ════════════════════════════════
-function initSplash(){
-  // Actualizar botón según estado guardado
-  if(!soundEnabled){
-    document.getElementById('soundBtn').textContent = '🔇';
-    document.getElementById('soundBtn').classList.add('muted');
-  }
-
-  setTimeout(()=>{
-    const splash = document.getElementById('splash');
-    splash.classList.add('hide');
-    setTimeout(()=>{ splash.remove(); }, 700);
-    // Sonido de bienvenida al entrar
-    playSound('welcome');
-    // Notificación de bienvenida
-    setTimeout(()=>{
-      const hour = new Date().getHours();
-      const greet = hour<12 ? '¡Buenos días!' : hour<20 ? '¡Buenas tardes!' : '¡Buenas noches!';
-      showNotif(greet + ' IsivoltPro listo', 'info', '⚡', 'Sistema cargado correctamente');
-    }, 400);
-  }, 2200);
-}
-
-// ════════════════════════════════
-// NOTIFICACIONES MEJORADAS
-// ════════════════════════════════
-function showNotif(msg, type='success', icon=null, sub=''){
-  document.querySelectorAll('.notif').forEach(n=>n.remove());
-  const icons = {success:'✅', error:'❌', warning:'⚠️', info:'ℹ️'};
-  const ic = icon || icons[type] || '✅';
-  const n = document.createElement('div');
-  n.className = `notif ${type}`;
-  n.innerHTML = `
-    <div class="notif-icon">${ic}</div>
-    <div style="flex:1">
-      <div class="notif-text">${msg}</div>
-      ${sub ? `<div class="notif-sub">${sub}</div>` : ''}
-    </div>
-    <button class="notif-close" onclick="this.parentElement.remove()">✕</button>`;
-  document.body.appendChild(n);
-  // Sonido automático según tipo
-  if(type==='error') playSound('error');
-  if(type==='warning') playSound('alert');
-  setTimeout(()=>{
-    n.style.animation = 'slideIn .3s ease reverse';
-    setTimeout(()=>n.remove(), 280);
-  }, 4500);
-}
-
-function downloadApp(){
-  const a=document.createElement('a');
-  a.href=location.href; a.download='IsivoltPro.html'; a.click();
-}
-
-// ════════════════════════════════
-// 📸 CAPTURA DE FOTO
-// ════════════════════════════════
-let currentPhoto = null;
-
-function capturePhoto(){
-  document.getElementById('photoInput').click();
-}
-
-function handlePhotoSelected(e){
-  const file = e.target.files[0];
-  if(!file) return;
-  
-  // Comprimir y convertir a base64
-  const reader = new FileReader();
-  reader.onload = (ev) => {
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      const MAX_WIDTH = 800;
-      const MAX_HEIGHT = 800;
-      let width = img.width;
-      let height = img.height;
-
-      if (width > height) {
-        if (width > MAX_WIDTH) {
-          height *= MAX_WIDTH / width;
-          width = MAX_WIDTH;
-        }
-      } else {
-        if (height > MAX_HEIGHT) {
-          width *= MAX_HEIGHT / height;
-          height = MAX_HEIGHT;
-        }
-      }
-
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, width, height);
-      
-      currentPhoto = canvas.toDataURL('image/jpeg', 0.7);
-      
-      // Mostrar preview
-      const preview = document.getElementById('photoPreview');
-      const placeholder = document.getElementById('photoPlaceholder');
-      const capture = document.getElementById('photoCapture');
-      
-      preview.src = currentPhoto;
-      preview.style.display = 'block';
-      placeholder.style.display = 'none';
-      capture.classList.add('has-photo');
-      
-      playSound('save');
-      showNotif('Foto capturada', 'success', '📷', 'Se guardará con el material');
-    };
-    img.src = ev.target.result;
-  };
-  reader.readAsDataURL(file);
-}
-
-function showImageModal(photoData){
-  if(!photoData) return;
-  document.getElementById('imgModalImg').src = photoData;
-  document.getElementById('imgModal').classList.add('active');
-}
-
-function closeImageModal(){
-  document.getElementById('imgModal').classList.remove('active');
-}
-
-// ════════════════════════════════
-// 📊 CÓDIGO DE BARRAS
-// ════════════════════════════════
-let scannerType = 'qr'; // 'qr' o 'barcode'
-let quaggaRunning = false;
-
-function setScannerType(type){
-  scannerType = type;
-  document.getElementById('scan-qr-btn').classList.toggle('active', type==='qr');
-  document.getElementById('scan-barcode-btn').classList.toggle('active', type==='barcode');
-  
-  if(type==='qr'){
-    document.getElementById('scan-title').textContent = 'Escanear Código QR';
-    document.getElementById('scan-subtitle').textContent = 'Escanea el QR de un material';
-  } else {
-    document.getElementById('scan-title').textContent = 'Escanear Código de Barras';
-    document.getElementById('scan-subtitle').textContent = 'Escanea el código de barras (EAN, UPC, Code128...)';
-  }
-  
-  if(scanning) stopScanning();
-}
-
-// Modificar startScanning para soportar barcode
-const originalStartScanning = startScanning;
-startScanning = async function(){
-  if(scannerType === 'barcode'){
-    await startBarcodeScanning();
-  } else {
-    await originalStartScanning();
-  }
-};
-
-const originalStopScanning = stopScanning;
-stopScanning = function(){
-  if(quaggaRunning){
-    stopBarcodeScanning();
-  } else {
-    originalStopScanning();
-  }
-};
-
-async function startBarcodeScanning(){
-  if(typeof Quagga === 'undefined'){
-    showNotif('Cargando lector de códigos de barras...', 'info');
-    await new Promise(resolve => setTimeout(resolve, 500));
-  }
-  
-  const vid = document.getElementById('video');
-  vid.style.display = 'block';
-  document.getElementById('startScanBtn').style.display = 'none';
-  document.getElementById('stopScanBtn').style.display = 'block';
-  
-  Quagga.init({
-    inputStream: {
-      name: "Live",
-      type: "LiveStream",
-      target: vid,
-      constraints: {
-        facingMode: "environment"
-      }
-    },
-    decoder: {
-      readers: ["ean_reader", "ean_8_reader", "code_128_reader", "code_39_reader", "upc_reader"]
-    }
-  }, (err) => {
-    if (err) {
-      handleCamError(err, 'scanResult', 'startScanBtn');
-      return;
-    }
-    Quagga.start();
-    quaggaRunning = true;
-  });
-
-  Quagga.onDetected((result) => {
-    if (result && result.codeResult && result.codeResult.code) {
-      playSound('scan');
-      handleBarcode(result.codeResult.code);
-    }
-  });
-}
-
-function stopBarcodeScanning(){
-  if(quaggaRunning){
-    Quagga.stop();
-    quaggaRunning = false;
-  }
-  document.getElementById('video').style.display = 'none';
-  document.getElementById('startScanBtn').style.display = 'block';
-  document.getElementById('stopScanBtn').style.display = 'none';
-}
-
-function handleBarcode(code){
-  stopBarcodeScanning();
-  
-  // Buscar herramienta por código de barras guardado
-  const tool = tools.find(t => t.barcode === code);
-  
-  if(tool){
-    openMovementModal(tool);
-  } else {
-    // Preguntar si quiere crear nueva herramienta con este barcode
-    showNotif(`Código: ${code}`, 'warning', '📊', 'No se encontró este código. ¿Quieres añadirlo?');
-    document.getElementById('scanResult').innerHTML = `
-      <div style="background:#fff3e0;border:2px solid #ffb74d;border-radius:12px;padding:16px;margin-top:14px">
-        <div style="font-weight:700;color:#e65100;margin-bottom:8px">📊 Código de barras: ${code}</div>
-        <div style="font-size:13px;color:#666;margin-bottom:12px">Este código no está registrado en el sistema</div>
-        <button class="btn btn-primary btn-full" onclick="openAddToolWithBarcode('${code}')">➕ Crear Material con este código</button>
-      </div>`;
-  }
-}
-
-function openAddToolWithBarcode(barcode){
-  openAddTool();
-  document.getElementById('t-code').value = barcode;
-  document.getElementById('scanResult').innerHTML = '';
-}
-
-// ════════════════════════════════
-// 📅 MANTENIMIENTO
-// ════════════════════════════════
-function checkMaintenance(tool){
-  if(!tool.maintenanceMonths) return null;
-  if(!tool.lastMaintenance) tool.lastMaintenance = tool.id; // Usar fecha de creación como inicial
-  
-  const lastDate = new Date(parseInt(tool.lastMaintenance));
-  const now = new Date();
-  const monthsDiff = (now - lastDate) / (1000 * 60 * 60 * 24 * 30);
-  
-  if(monthsDiff >= tool.maintenanceMonths){
-    const overdue = Math.floor(monthsDiff - tool.maintenanceMonths);
-    return { status: 'due', text: `Vencido ${overdue}m`, overdue };
-  } else {
-    const remaining = Math.ceil(tool.maintenanceMonths - monthsDiff);
-    if(remaining <= 1) return { status: 'soon', text: `En ${remaining}m` };
-    return { status: 'ok', text: `OK (${remaining}m)` };
-  }
-}
-
-function registerMaintenance(toolId){
-  const tool = tools.find(t => t.id === toolId);
-  if(!tool) return;
-  
-  tool.lastMaintenance = Date.now().toString();
-  if(!tool.maintenanceHistory) tool.maintenanceHistory = [];
-  tool.maintenanceHistory.push({
-    date: new Date().toISOString(),
-    notes: 'Mantenimiento registrado'
-  });
-  
-  save();
-  playSound('save');
-  showNotif(`Mantenimiento registrado: ${tool.name}`, 'success', '🔧', 'Próxima revisión programada');
-  renderTools();
-  renderDashboard();
-}
-
-// ════════════════════════════════
-// 📱 PWA — INSTALACIÓN
-// ════════════════════════════════
-let deferredPrompt;
-
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferredPrompt = e;
-  
-  // Mostrar prompt de instalación después de 3 segundos
-  setTimeout(() => {
-    document.getElementById('installPrompt').classList.add('show');
-  }, 3000);
-});
-
-document.getElementById('installBtn')?.addEventListener('click', async () => {
-  if (!deferredPrompt) return;
-  
-  deferredPrompt.prompt();
-  const { outcome } = await deferredPrompt.userChoice;
-  
-  if (outcome === 'accepted') {
-    playSound('save');
-    showNotif('IsivoltPro instalado', 'success', '📱', 'Abre desde tu pantalla de inicio');
-  }
-  
-  deferredPrompt = null;
-  document.getElementById('installPrompt').classList.remove('show');
-});
-
-window.addEventListener('appinstalled', () => {
-  showNotif('¡Instalación completada!', 'success', '✅', 'Ya puedes abrir IsivoltPro desde tu pantalla de inicio');
-  deferredPrompt = null;
-});
-
-// Generar manifest.json dinámico
-const manifestData = {
-  name: "IsivoltPro",
-  short_name: "IsivoltPro",
-  description: "Control inteligente de inventario con QR",
-  start_url: "./",
-  display: "standalone",
-  background_color: "#1e3c72",
-  theme_color: "#1e3c72",
-  orientation: "portrait",
-  icons: [
-    {
-      src: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' fill='%231e3c72'/><text y='400' x='256' text-anchor='middle' font-size='360' fill='white'>⚡</text></svg>",
-      sizes: "512x512",
-      type: "image/svg+xml",
-      purpose: "any maskable"
-    }
-  ]
-};
-
-const manifestBlob = new Blob([JSON.stringify(manifestData)], {type: 'application/json'});
-const manifestURL = URL.createObjectURL(manifestBlob);
-document.getElementById('manifest-placeholder').setAttribute('href', manifestURL);
-
-// ════════════════════════════════
-// 🔔 NOTIFICACIONES PUSH
-// ════════════════════════════════
-function requestNotificationPermission(){
-  if(!('Notification' in window)) return;
-  if(Notification.permission === 'granted') return;
-  if(Notification.permission !== 'denied'){
-    Notification.requestPermission().then(permission => {
-      if(permission === 'granted'){
-        showNotif('Notificaciones activadas', 'success', '🔔', 'Te avisaremos de herramientas pendientes');
-      }
-    });
-  }
-}
-
-function sendNotification(title, body){
-  if(!('Notification' in window)) return;
-  if(Notification.permission !== 'granted') return;
-  
-  try {
-    new Notification(title, {
-      body,
-      icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%231e3c72'/><text y='75' x='50' text-anchor='middle' font-size='60' fill='white'>⚡</text></svg>",
-      badge: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='75' font-size='80'>⚡</text></svg>",
-      vibrate: [200, 100, 200],
-      tag: 'isivoltpro'
-    });
-  } catch(e) { console.log('Notification error:', e); }
-}
-
-function checkPendingTools(){
-  const now = new Date();
-  const pending = [];
-  
-  history.forEach(h => {
-    if(h.type !== 'out') return;
-    const tool = tools.find(t => t.id === h.toolId);
-    if(!tool || tool.status !== 'out') return;
-    
-    const days = Math.floor((now - new Date(h.date)) / 864e5);
-    if(days >= 7) pending.push({tool, worker: workers.find(w=>w.id===h.workerId), days});
-  });
-  
-  if(pending.length > 0){
-    const msg = `${pending.length} herramienta${pending.length>1?'s':''} sin devolver`;
-    sendNotification('⚠️ Atención IsivoltPro', msg);
-  }
-}
-
-// Pedir permiso después de 10 segundos de uso
-setTimeout(() => {
-  if(localStorage.getItem('iv_notif_asked') !== 'true'){
-    requestNotificationPermission();
-    localStorage.setItem('iv_notif_asked', 'true');
-  }
-}, 10000);
-
-// Revisar herramientas pendientes cada hora si la app está abierta
-setInterval(checkPendingTools, 3600000);
-
-// ════════════════════════════════
-// MENÚ CONFIGURACIÓN
-// ════════════════════════════════
-function openSettingsMenu(){
-  const menu = document.getElementById('settingsMenu');
-  menu.classList.toggle('show');
-  
-  // Actualizar estado del sonido
-  document.getElementById('sound-icon-menu').textContent = soundEnabled ? '🔊' : '🔇';
-  document.getElementById('sound-status-menu').textContent = soundEnabled ? 'Activado' : 'Desactivado';
-}
-
-function closeSettingsMenu(){
-  document.getElementById('settingsMenu').classList.remove('show');
-}
-
-// Cerrar menú al hacer click fuera
-document.addEventListener('click', (e) => {
-  const menu = document.getElementById('settingsMenu');
-  const isSettings = e.target.closest('.settings-menu') || e.target.textContent === '⚙️';
-  if (!isSettings && menu.classList.contains('show')) {
-    closeSettingsMenu();
-  }
-});
-
-function clearAllData(){
-  if(!confirm('⚠️ ¿BORRAR TODOS LOS DATOS?\n\nEsto eliminará:\n• Todos los materiales\n• Todo el personal\n• Todo el historial\n\nEsta acción NO se puede deshacer.')) return;
-  if(!confirm('¿Estás COMPLETAMENTE seguro? Esta es tu última oportunidad.')) return;
-  
-  localStorage.clear();
-  location.reload();
-}
-
-// ════════════════════════════════
-// 🔄 GOOGLE DRIVE SINCRONIZACIÓN
-// ════════════════════════════════
-const GDRIVE_CLIENT_ID = ''; // Usuario debe configurar su propia API
-const GDRIVE_API_KEY = '';
-const GDRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
-const GDRIVE_FOLDER_NAME = 'IsivoltPro_Backups';
-
-let gdriveToken = localStorage.getItem('iv_gdrive_token');
-let gdriveConnected = !!gdriveToken;
-let lastSyncTime = localStorage.getItem('iv_last_sync');
-
-function openGDriveSync(){
-  document.getElementById('gdriveModal').classList.add('active');
-  updateGDriveStatus();
-  closeSettingsMenu();
-}
-
-function updateGDriveStatus(){
-  const status = document.getElementById('gdriveStatus');
-  const icon = document.getElementById('gdriveStatusIcon');
-  const title = document.getElementById('gdriveStatusTitle');
-  const desc = document.getElementById('gdriveStatusDesc');
-  
-  if(gdriveConnected){
-    status.className = 'gdrive-status connected';
-    icon.textContent = '✅';
-    title.textContent = 'Conectado';
-    desc.textContent = lastSyncTime ? `Última sincronización: ${new Date(parseInt(lastSyncTime)).toLocaleString('es-ES')}` : 'Listo para sincronizar';
-  } else {
-    status.className = 'gdrive-status';
-    icon.textContent = '☁️';
-    title.textContent = 'No conectado';
-    desc.textContent = 'Conecta para hacer backup automático';
-  }
-}
-
-async function connectGoogleDrive(){
-  showNotif('Conectando con Google Drive...', 'info', '☁️');
-  
-  // MODO DEMO: Como no tenemos API key real, simulamos
-  if(!GDRIVE_CLIENT_ID){
-    showNotif('Configuración de Google Drive', 'warning', 'ℹ️', 'Para usar esta función necesitas configurar tu API key');
-    
-    // Mostrar instrucciones
-    document.getElementById('gdriveActions').innerHTML = `
-      <div style="background:#fff3e0;border:2px solid #ffb74d;border-radius:12px;padding:16px;text-align:left;margin-bottom:16px">
-        <div style="font-weight:700;color:#e65100;margin-bottom:10px">📋 Cómo configurar Google Drive API</div>
-        <ol style="font-size:13px;color:#666;line-height:1.8;margin:0;padding-left:20px">
-          <li>Ve a <a href="https://console.cloud.google.com" target="_blank" style="color:#1e3c72">Google Cloud Console</a></li>
-          <li>Crea un proyecto nuevo</li>
-          <li>Activa "Google Drive API"</li>
-          <li>Crea credenciales OAuth 2.0</li>
-          <li>Copia Client ID y API Key</li>
-          <li>Pégalos en el código (líneas 1950-1951)</li>
-        </ol>
-        <button class="btn btn-primary btn-full" style="margin-top:12px" onclick="useDemoMode()">
-          🔄 Usar Modo Demo (sin Google Drive)
-        </button>
-      </div>
+      <div class="stock-val ${i.stock<=i.min?'low':''}">${i.stock}</div>
     `;
-    return;
+    list.appendChild(div);
+  });
+}
+
+function updateDashboard(){
+  document.getElementById('kpi-total').innerText = inventory.length;
+  document.getElementById('kpi-low').innerText = inventory.filter(i=>i.stock<=i.min).length;
+  document.getElementById('kpi-loan').innerText = inventory.filter(i=>i.assign).length;
+  const val = inventory.reduce((acc, i) => acc + (i.stock * (i.price||0)), 0);
+  document.getElementById('kpi-value').innerText = Math.round(val) + '€';
+}
+
+/* ── 5. FOTOS (Compresión) ── */
+function handlePhoto(inp){
+  if(inp.files && inp.files[0]){
+    const reader = new FileReader();
+    reader.onload = function(e){
+       const img = new Image();
+       img.onload = function(){
+         const canvas = document.createElement('canvas');
+         const ctx = canvas.getContext('2d');
+         // Redimensionar a 300px ancho (ahorra mucha memoria)
+         const scale = 300/img.width;
+         canvas.width = 300;
+         canvas.height = img.height * scale;
+         ctx.drawImage(img,0,0,canvas.width,canvas.height);
+         const b64 = canvas.toDataURL('image/jpeg',0.6);
+         document.getElementById('preview-img').src=b64;
+         document.getElementById('preview-img').style.display='block';
+         document.getElementById('preview-text').style.display='none';
+         document.getElementById('photo-input').dataset.base64=b64;
+       };
+       img.src=e.target.result;
+    };
+    reader.readAsDataURL(inp.files[0]);
   }
-  
-  // Aquí iría la conexión real con gapi.auth2
-  // Por ahora modo demo
-  gdriveConnected = true;
-  gdriveToken = 'demo_token_'+Date.now();
-  localStorage.setItem('iv_gdrive_token', gdriveToken);
-  updateGDriveStatus();
-  
-  playSound('save');
-  showNotif('Google Drive conectado', 'success', '✅', 'Backup automático activado');
 }
 
-function useDemoMode(){
-  showNotif('Modo Demo activado', 'info', '💾', 'Backups locales habilitados');
-  closeModal('gdriveModal');
+/* ── 6. BACKUP Y EXCEL ── */
+// Backup Completo (.isv = JSON)
+function backupSystem(){
+  const dataStr = JSON.stringify(inventory);
+  const blob = new Blob([dataStr], {type: "application/json"});
+  const url = URL.createObjectURL(blob);
+  const date = new Date().toISOString().slice(0,10);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `Isivolt_Backup_${date}.isv`;
+  link.click();
 }
 
-async function manualBackup(){
-  showSyncIndicator('Creando backup...');
-  
-  const backup = {
-    version: '5.0',
-    timestamp: Date.now(),
-    data: {
-      tools: tools,
-      workers: workers,
-      history: history
-    },
-    stats: {
-      totalTools: tools.length,
-      totalWorkers: workers.length,
-      totalHistory: history.length
+function restoreSystem(inp){
+  const file = inp.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    try {
+      const data = JSON.parse(e.target.result);
+      if(Array.isArray(data) && confirm(`Se restaurarán ${data.length} items. Esto sobrescribe lo actual. ¿Seguro?`)){
+        inventory = data;
+        localStorage.setItem(DB_NAME, JSON.stringify(inventory));
+        updateDashboard(); renderList();
+        alert("Restauración exitosa");
+      }
+    } catch(err){ alert("Archivo corrupto o inválido"); }
+  };
+  reader.readAsText(file);
+  inp.value='';
+}
+
+// Excel Export/Import
+function exportToExcel(){
+  const data = inventory.map(i=>({
+    ID: i.id, Nombre: i.name, Categoria: i.cat, Stock: i.stock, 
+    Minimo: i.min, Precio: i.price, Ubicacion: i.assign, Valor_Total: i.stock*i.price
+  }));
+  const ws = XLSX.utils.json_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Inventario");
+  XLSX.writeFile(wb, "Inventario_Isivolt.xlsx");
+}
+
+function importFromExcel(inp){
+  const file = inp.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    const data = new Uint8Array(e.target.result);
+    const wb = XLSX.read(data, {type:'array'});
+    const json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+    if(json.length && confirm(`Importar ${json.length} items desde Excel? (Se perderán fotos)`)){
+      inventory = json.map(row=>({
+        id: row.ID || Date.now()+Math.random(),
+        name: row.Nombre || row.name || 'Sin Nombre',
+        cat: row.Categoria || 'Varios',
+        stock: row.Stock || 0,
+        min: row.Minimo || 0,
+        price: row.Precio || 0,
+        assign: row.Ubicacion || '',
+        img: null
+      }));
+      localStorage.setItem(DB_NAME, JSON.stringify(inventory));
+      updateDashboard(); renderList();
     }
   };
-  
-  // Descargar como JSON
-  const blob = new Blob([JSON.stringify(backup, null, 2)], {type: 'application/json'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `IsivoltPro_Backup_${new Date().toLocaleDateString('es-ES').replace(/\//g,'-')}.json`;
-  a.click();
-  
-  localStorage.setItem('iv_last_sync', Date.now().toString());
-  lastSyncTime = Date.now().toString();
-  
-  hideSyncIndicator();
-  playSound('save');
-  showNotif('Backup descargado', 'success', '💾', `${history.length} movimientos guardados`);
-  updateGDriveStatus();
+  reader.readAsArrayBuffer(file);
+  inp.value='';
 }
 
-function restoreFromBackup(){
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = '.json';
-  input.onchange = (e) => {
-    const file = e.target.files[0];
-    if(!file) return;
-    
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      try {
-        const backup = JSON.parse(ev.target.result);
-        
-        if(!backup.data || !backup.data.tools || !backup.data.workers || !backup.data.history){
-          throw new Error('Formato de backup inválido');
-        }
-        
-        if(!confirm(`⚠️ ¿Restaurar este backup?\n\nFecha: ${new Date(backup.timestamp).toLocaleString('es-ES')}\n${backup.stats.totalTools} materiales\n${backup.stats.totalWorkers} personal\n${backup.stats.totalHistory} movimientos\n\n¡Esto REEMPLAZARÁ todos tus datos actuales!`)){
-          return;
-        }
-        
-        tools = backup.data.tools;
-        workers = backup.data.workers;
-        history = backup.data.history;
-        save();
-        
-        playSound('checkin');
-        showNotif('Backup restaurado', 'success', '✅', 'Datos cargados correctamente');
-        
-        closeModal('gdriveModal');
-        renderDashboard();
-        renderTools();
-        renderWorkers();
-        renderHistory();
-        
-      } catch(error) {
-        showNotif('Error al restaurar backup', 'error', '❌', error.message);
-      }
-    };
-    reader.readAsText(file);
-  };
-  input.click();
+/* ── 7. SCANNER QR ── */
+let video=document.getElementById('qr-video'), isScanning=false;
+function startScan(){
+  switchTab('scan'); isScanning=true;
+  navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}}).then(s=>{
+    video.srcObject=s; video.setAttribute("playsinline", true); video.play();
+    requestAnimationFrame(tickScan);
+  });
+}
+function tickScan(){
+  if(video.readyState===video.HAVE_ENOUGH_DATA && isScanning){
+     const c=document.createElement("canvas");
+     c.width=video.videoWidth; c.height=video.videoHeight;
+     c.getContext("2d").drawImage(video,0,0);
+     const i=c.getContext("2d").getImageData(0,0,c.width,c.height);
+     const code=jsQR(i.data,i.width,i.height,{inversionAttempts:"dontInvert"});
+     if(code){
+       stopScan();
+       const f=inventory.find(x=>x.id==code.data||x.name===code.data);
+       if(f) openModal(f.id); else if(confirm('Item no encontrado. ¿Crear nuevo?')) {openModal(); document.getElementById('item-name').value=code.data;}
+     } else requestAnimationFrame(tickScan);
+  } else if(isScanning) requestAnimationFrame(tickScan);
+}
+function stopScan(){
+  isScanning=false; if(video.srcObject) video.srcObject.getTracks().forEach(t=>t.stop());
+  switchTab('dash');
 }
 
-function showSyncIndicator(text){
-  const indicator = document.getElementById('syncIndicator');
-  document.getElementById('syncText').textContent = text;
-  indicator.classList.add('show');
-}
-
-function hideSyncIndicator(){
-  setTimeout(() => {
-    document.getElementById('syncIndicator').classList.remove('show');
-  }, 1500);
-}
-
-// Auto-backup cada hora si está conectado
-setInterval(() => {
-  if(gdriveConnected && tools.length > 0){
-    // En producción real aquí se subiría a Drive
-    localStorage.setItem('iv_last_sync', Date.now().toString());
-    lastSyncTime = Date.now().toString();
-    console.log('Auto-backup realizado');
+/* ── 8. PWA SERVICE WORKER (OFFLINE) ── */
+function registerSW() {
+  if ('serviceWorker' in navigator) {
+    const swCode = `
+      self.addEventListener('install', e => e.waitUntil(self.skipWaiting()));
+      self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
+      self.addEventListener('fetch', e => {
+        e.respondWith(fetch(e.request).catch(() => {
+          return new Response('Modo Offline: Sin conexión, pero la app sigue funcionando.', {headers: {'Content-Type': 'text/plain'}});
+        }));
+      });
+    `;
+    const blob = new Blob([swCode], {type: 'text/javascript'});
+    navigator.serviceWorker.register(URL.createObjectURL(blob))
+      .then(() => console.log('SW Registrado'))
+      .catch(err => console.log('SW Error:', err));
   }
-}, 3600000); // cada hora
-
-// ════════════════════════════════
-// INIT
-// ════════════════════════════════
-renderDashboard();
-initSplash();
-
-// Revisar pendientes al iniciar
-setTimeout(checkPendingTools, 5000);
+}
 </script>
 </body>
 </html>
